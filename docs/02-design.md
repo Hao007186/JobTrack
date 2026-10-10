@@ -32,12 +32,11 @@
                        Lambda Function URL（auth NONE）──► Lambda: api（FastAPI + Mangum，含 LINE webhook 路由）
                                                           └ middleware 檢查 X-Origin-Verify，不符回 403
 
-EventBridge Scheduler（每 6 小時）──► Lambda: price-checker
+EventBridge Scheduler（每天）──► Lambda: price-checker
      1. 取出需要查價的 price_queries（有啟用中的 watch、非示範資料、出發日 > 今天 + 2 天）
-     2. Travelpayouts 查價（雷達）→ 寫入 price_snapshots（provider = travelpayouts）
-     3. 雷達顯示可能觸發的候選 + 本輪輪到巡檢的 query → 在額度預算內呼叫 SerpApi
-        → 寫入 price_snapshots（provider = serpapi）並更新 price_baselines
-     4. 用 SerpApi 確認的價格套用觸發規則 → 狀態變化才寫入 alerts，送到 SQS
+     2. 計算今日預算，從最久沒查的 query 開始呼叫 SerpApi
+        → 寫入 price_snapshots 並更新 price_baselines
+     3. 套用觸發規則 → 狀態變化才寫入 alerts，送到 SQS
 EventBridge Scheduler（每天）──► Lambda: price-checker（維護模式）
      - 出發日已過的 watch 標記為 expired
      - 全站有空位時，把最早排隊的 watch 轉為 active
@@ -53,18 +52,13 @@ CloudWatch：錯誤、DLQ 堆積、額度、SES 退信率 → SNS 寄 Email 告�
 ## 核心邏輯設計
 
 ### 額度策略
-- **Travelpayouts = 雷達**：每 6 小時查所有 query，免費且沒有嚴格額度，只用來找出「可能降價」的候選。
-- **SerpApi = 確認 + 巡檢**，每月 250 次為硬上限：
-  - **確認**：雷達價格可能觸發條件時，才用 SerpApi 查即時價格。每個 query 每天最多確認 1 次，避免 Travelpayouts 過期資料重複浪費額度。
-    - 「可能觸發」的定義：雷達價格 ≤ 目標價 × 1.05、低於典型區間下緣，或低於歷史最低價；已經通知過的 watch 則要 ≤ `last_notified_price` × 0.95。
-  - **輪流巡檢**：Travelpayouts 可能沒有冷門航線或日期的資料，所以剩餘額度平均分配給各 query，輪流用 SerpApi 直接查價，確保每個追蹤每隔幾天至少有一筆真實價格。
-  - **動態預算**：每次執行時計算 `本月剩餘額度 ÷ 本月剩餘天數 = 今日預算`，先預留確認用量，剩下的分給巡檢（最久沒查的 query 優先）。
-- **用完就降級**：SerpApi 額度歸零 → 只用 Travelpayouts，通知標註「價格為參考值」，並發一則系統通知；下個月 1 號恢復。
-  - 降級期間**只有 `below_target` 可以用 Travelpayouts 價格觸發**（目標價是使用者自己設的，誤報代價最低）；`below_typical` 和 `record_low` 暫停判斷，Travelpayouts 價格也不更新價格基準。
-- **用量估算**：250 次／月約等於每天 8 次；來回票一次查價要 2～3 次呼叫，所以 20 個來回查詢時，每個查詢大約 5～7 天才巡檢到一次。這是全站上限訂在 20 個 active price_query 的原因。
+- **只用 SerpApi**，每月 250 次為硬上限。原本規劃用 Travelpayouts 當雷達，M0 實測後不採用（見[總覽〈M0 實驗決策紀錄〉](architecture.md#m0-實驗決策紀錄2026-10-10)）。
+- **每天排程一次，輪流查價**：每次執行時計算 `本月剩餘額度 ÷ 本月剩餘天數 = 今日預算`，從最久沒查的 query 開始查，查到預算用完為止。
+- **一次查價只花 1 次呼叫**：來回票的第一次回應就包含來回總價和 `price_insights`，不再用 `departure_token` 查回程；訂票連結使用回應中的 Google Flights 網址，不花額度換 `booking_token`。實作時要拿真實回應確認這一點；如果需要多次呼叫，預算以實際次數計算，全站上限也要跟著調整。
+- **用量估算**：250 次／月約等於每天 8 次，所以每個 query 大約每「active query 數 ÷ 8」天查到一次。全站上限訂為 **8 個** active price_query，讓每個 query 每天都查得到；放寬到 20 個的話會變成約 2.5 天一次。
+- **額度用完**：暫停查價到下個月 1 號，並發一則系統通知。動態預算正常運作時額度不會提前用完，發生時要檢查是否有異常重試。
 - 相同條件的追蹤合併成同一個 price_query，額度只花一次。
-- 用量記錄在 `api_usage`；供應商用 `PriceProvider` 介面（adapter pattern）抽象化。
-- 一次完整的 SerpApi 結果可能需要 2～3 次呼叫（來回票的 `departure_token`、訂票連結的 `booking_token`），預算計算時以實際呼叫次數為準。
+- 用量記錄在 `api_usage`；供應商用 `PriceProvider` 介面（adapter pattern）抽象化，v1 有 mock 和 SerpApi 兩個實作。
 
 ### 價格基準
 比較的一律是**同一個 price_query（同一個出發日期）**的價格，不跨日期平均。
@@ -74,11 +68,10 @@ CloudWatch：錯誤、DLQ 堆積、額度、SES 退信率 → SNS 寄 Email 告�
 | 「便宜」的判斷 | SerpApi `price_insights.typical_price_range` 的下緣（Google 的典型價格區間），每次呼叫 SerpApi 時更新 |
 | 歷史最低價 | 冷啟動用 `price_insights.price_history` 的最低值當起點，之後用自己累積的 **SerpApi 價格**持續更新 |
 
-- **Travelpayouts 的價格只當雷達，不納入基準計算**，避免快取價和即時價混在一起造成偏差。
 - Google 沒有提供 `price_insights` 時（冷門航線、出發日很遠）：只用目標價觸發；「歷史新低」要等累積到至少 3 筆 SerpApi 價格才開始判斷；頁面顯示「歷史資料累積中」。
 
 ### 觸發與去重（狀態變化才通知）
-只有 **SerpApi 確認過的價格**才能觸發通知；唯一的例外是 SerpApi 額度用完的降級期間，`below_target` 可以用 Travelpayouts 價格觸發並標註「價格為參考值」（見〈額度策略〉）。觸發原因有三種：
+每次 SerpApi 查到價格後套用以下規則。觸發原因有三種：
 
 | 原因 | 條件 |
 |---|---|
@@ -114,32 +107,24 @@ sequenceDiagram
     participant EB as EventBridge Scheduler
     participant C as price-checker
     participant DB as Neon
-    participant TP as Travelpayouts
     participant SA as SerpApi
     participant Q as SQS
     participant N as notifier
     participant CH as SES / LINE
 
-    EB->>C: 每 6 小時觸發
-    C->>DB: 取出需要查價的 price_queries
-    C->>TP: 查價（雷達）
-    C->>DB: 寫入 price_snapshots（travelpayouts）
-    C->>C: 找出可能觸發的候選和本輪巡檢的 query，計算今日預算
-    alt 預算內
+    EB->>C: 每天觸發
+    C->>DB: 取出需要查價的 price_queries，計算今日預算
+    loop 從最久沒查的 query 開始，直到預算用完
         C->>SA: 查即時價格
-        C->>DB: 寫入 price_snapshots（serpapi），更新 price_baselines 和 api_usage
+        C->>DB: 寫入 price_snapshots，更新 price_baselines 和 api_usage
         C->>C: 套用觸發規則
         opt 需要通知
             C->>DB: 寫入 alerts，更新 watch_alert_states
             C->>Q: 送出 alert
         end
-    else 額度用完
-        C->>DB: 降級為只用 Travelpayouts，產生系統通知
-        C->>C: 只判斷 below_target
-        opt 跌破目標價
-            C->>DB: 寫入 alerts（標註參考值），更新 watch_alert_states
-            C->>Q: 送出 alert
-        end
+    end
+    opt 本月額度已用完
+        C->>DB: 暫停查價，產生系統通知
     end
     Q->>N: 觸發
     N->>DB: 寫入 notifications 和 alert_deliveries
@@ -151,14 +136,14 @@ sequenceDiagram
 | 狀態 | 說明 |
 |---|---|
 | `active` | 正常查價 |
-| `queued` | 排隊中：全站 active price_query 已滿 20 個，暫不查價；有空位時由每日排程依建立時間轉為 `active` |
+| `queued` | 排隊中：全站 active price_query 已滿 8 個，暫不查價；有空位時由每日排程依建立時間轉為 `active` |
 | `paused` | 使用者暫停，不查價 |
 | `expired` | 出發日已過，由每日排程自動標記；前端收到「歷史紀錄」分頁，價格圖保留 |
 
 ```mermaid
 stateDiagram-v2
     [*] --> active: 新增（有名額，或對應既有 query）
-    [*] --> queued: 新增（全站 20 個 query 已滿）
+    [*] --> queued: 新增（全站 8 個 query 已滿）
     queued --> active: 每日排程發現空位
     active --> paused: 使用者暫停
     paused --> active: 恢復（有名額）
@@ -317,7 +302,7 @@ erDiagram
 - `line_accounts`(user_id PK/FK, line_user_id UQ, display_name, is_friend, linked_at)
 - `notification_settings`(user_id, email_enabled, line_enabled)
 - `airports`(iata PK, name_zh, city, country)、`airlines`(iata PK, name_zh)
-- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines_key, is_demo, last_checked_at, last_serpapi_at, next_check_at)：`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
+- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines_key, is_demo, last_checked_at)：`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
 - `watches`(id, public_id, user_id, **price_query_id FK**, origin, destination, depart_date, return_date NULL, trip_type, cabin, adults, **target_price NOT NULL**, currency, **status**(active/queued/paused/expired), timestamps)、`watch_airlines`(watch_id, airline_iata)
 - `price_snapshots`(id, price_query_id, provider, price, currency, airline_iata, stops, booking_url, observed_at)：只新增不修改
 - `price_daily_lows`(price_query_id, date, provider, min_price, currency)，PK(price_query_id, date, provider)：超過保留期限的 snapshots 彙總到這裡
@@ -339,7 +324,7 @@ erDiagram
 ## 前端頁面
 首頁（含「以示範帳號瀏覽」按鈕）→ 註冊／登入 → 我的追蹤列表（進行中／歷史紀錄分頁）→ 新增／編輯追蹤 → 追蹤詳情 → 通知中心（鈴鐺 + 未讀數）→ 設定（個人資料、LINE 綁定與 QR code、通知開關）
 
-**追蹤詳情的價格圖：** SerpApi 價格畫成主線，Travelpayouts 畫成淡色參考點，加上目標價線和典型價格區間色帶；下方列出最近通知和訂票連結。
+**追蹤詳情的價格圖：** SerpApi 價格畫成主線，加上目標價線和典型價格區間色帶；下方列出最近通知和訂票連結。
 
 ## 附圖索引
 | 圖 | 位置 |

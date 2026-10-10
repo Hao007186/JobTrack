@@ -27,14 +27,15 @@ Project_TicketTrack/
 ## 實作順序（依里程碑）
 
 **M0：前置驗證**
-- 小實驗：拿 3～5 條目標航線實際呼叫 Travelpayouts，確認資料覆蓋率和新鮮度，以及價格是否區分艙等和人數。若覆蓋率太差，回頭重新檢討額度策略；若不區分艙等和人數，v1 改為限定經濟艙、單人，或讓其他追蹤只靠巡檢
+- 小實驗（**已完成，2026-10-10**）：拿 5 條台灣出發的航線實際呼叫 Travelpayouts。結果覆蓋率太差，決定不採用、只用 SerpApi，見[總覽〈M0 實驗決策紀錄〉](architecture.md#m0-實驗決策紀錄2026-10-10)。腳本保留在 `experiments/m0/`
+- 開始實作 SerpApi adapter 前，先拿 1～2 筆真實回應確認來回票一次呼叫就能拿到總價和 `price_insights`
 - 購買網域、Cloudflare 設定 DNS、申請 SES 正式使用權限（審核需要時間，提早送出）
 
 **M1：MVP 上線**
 1. 骨架 + docker-compose + CI（ci.yml）
 2. 帳號系統（含 Email 驗證）+ 示範帳號（US-01、US-11）
 3. 機場／航空公司資料 + 追蹤 CRUD + 生命週期（US-02、US-03）
-4. PriceProvider：mock → Travelpayouts → SerpApi；checker、查詢合併、額度預算與輪流巡檢（US-10）
+4. PriceProvider：mock → SerpApi；checker、查詢合併、額度預算與輪流查價（US-10）
 5. 價格基準 + 觸發規則 + alerts + notifications + notifier（站內、Email）（US-04、US-06、US-09）
 6. 前端頁面 + 價格歷史圖（US-05）
 7. Terraform（AWS + Cloudflare）+ deploy pipeline + 基本告警 → **正式上線**
