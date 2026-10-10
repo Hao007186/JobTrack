@@ -5,10 +5,10 @@
 
 ## 目前狀態
 - 文件階段：只產出架構文件，**不寫程式碼**
-- 架構文件是待審閱草稿，目前全部放在 `docs/architecture.md`
+- 架構文件是草稿第 3 版：`docs/architecture.md` 是總覽，`docs/01-requirements.md` ~ `docs/06-operations.md` 是 SDLC 6 個階段
 
 ## 何時讀哪份文件
-- 做需求、架構、設計、實作相關的工作前，先讀 `docs/architecture.md`
+- 做需求、架構、設計、實作相關的工作前，先讀 `docs/architecture.md`，再依工作內容讀對應的階段文件
 - `docs/skills.md`：可用的 Claude Code skills 一覽
 
 ## 規範
