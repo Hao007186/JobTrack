@@ -6,20 +6,19 @@
 | 指標 | 告警條件 |
 |---|---|
 | Lambda 錯誤率 | 5 分鐘內錯誤 > 5 次 |
-| checker 是否有在跑 | 超過 7 小時沒有成功執行 |
+| checker 是否有在跑 | 超過 25 小時沒有成功執行 |
 | DLQ 訊息數 | > 0 |
 | SerpApi／LINE 額度 | 用量 > 80% |
 | SES 退信率／投訴率 | 退信 > 5% 或投訴 > 0.1%（超過 AWS 門檻帳號會被暫停寄信） |
 | AWS 費用 | > US$1 |
 - 結構化日誌（JSON，帶 request_id、watch_id），用 CloudWatch Logs Insights 查詢
-- `/health` 健康檢查端點；Admin 頁面顯示額度、巡檢覆蓋率（每個 query 距離上次 SerpApi 查價幾天）和通知成功率
+- `/health` 健康檢查端點；Admin 頁面顯示額度、查價覆蓋率（每個 query 距離上次查價幾天）和通知成功率
 
 ## 事件處理手冊（runbook）
 | 狀況 | 處理方式 |
 |---|---|
-| SerpApi 額度用完 | 自動降級成只用 Travelpayouts，只發 `below_target` 通知並標註「價格為參考值」，發系統通知；下個月 1 號恢復 |
-| SerpApi 停止服務或長期無法使用 | 走和額度用完相同的降級流程；透過 `PriceProvider` 介面換接其他供應商（例如 Duffel adapter） |
-| Travelpayouts 長期沒有某航線資料 | 該 query 只靠輪流巡檢；Admin 頁面標示覆蓋率偏低 |
+| SerpApi 額度用完 | 自動暫停查價並發系統通知，下個月 1 號恢復；檢查用量紀錄是否有異常重試 |
+| SerpApi 停止服務或長期無法使用 | 查價暫停，發系統通知；透過 `PriceProvider` 介面換接其他供應商（例如 Duffel adapter） |
 | LINE 推播失敗或額度用完 | 改由 Email 送達；DLQ 告警後人工檢查 |
 | SES 正式權限被拒或帳號被暫停 | `EmailSender` 切換到 Gmail SMTP 備案；檢查退信／投訴原因後重新申請 |
 | 註冊或重寄驗證信被濫用（SES 退信率／投訴率告警） | 先暫時關閉註冊；再補上註冊頻率限制或 Cloudflare Turnstile，並對 Lambda 設 reserved concurrency |

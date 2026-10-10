@@ -42,7 +42,7 @@
 | CloudWatch Logs 超過 5GB | log 只保留 7–14 天 |
 | NAT Gateway | Lambda 不放進 VPC |
 | KMS 自訂金鑰 | 使用 AWS 管理的金鑰 |
-| SerpApi 超量 | 硬上限 250 次，用完降級，不升級付費 |
+| SerpApi 超量 | 硬上限 250 次，用完就暫停查價，不升級付費 |
 | 忘記關掉的資源 | AWS Budgets US$1 告警 + 全部用 Terraform 管理 |
 | 免費方案到期，帳號被關閉 | 到期前升級成付費方案（設行事曆提醒），升級後靠 Budgets US$1 告警把關 |
 

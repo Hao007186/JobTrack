@@ -2,7 +2,7 @@
 
 ## Context
 產品名稱 **FareWatch**（repo 資料夾為 `Project_TicketTrack`）。
-使用者註冊帳號 → 設定航線／日期／目標價／航空公司 → 系統每 6 小時查價、累積價格歷史 → 價格**跌破目標價、低於 Google 典型價格區間，或創下歷史新低**時，發送站內通知 + Email；**有綁定 LINE 的使用者額外收到 LINE 推播**，訊息附訂票連結。
+使用者註冊帳號 → 設定航線／日期／目標價／航空公司 → 系統每天查價、累積價格歷史 → 價格**跌破目標價、低於 Google 典型價格區間，或創下歷史新低**時，發送站內通知 + Email；**有綁定 LINE 的使用者額外收到 LINE 推播**，訊息附訂票連結。
 定位是**單人維護的展示型作品集**，**預算約每年 US$10（只有網域費用）**，同時涵蓋 前端／後端／API／Docker／CI/CD／k8s／AWS／DevOps，並依**軟體開發生命週期（SDLC）6 階段**組織。
 本階段**不寫程式碼**，只產出架構文件。
 
@@ -10,6 +10,7 @@
 - 目前為**草稿第 3 版**，已拆成本文件（總覽）和 6 份階段文件，並補上 Mermaid 圖
 - 2026-10-09 審閱後已套用 12 項決策，見文末〈審閱決策紀錄〉
 - 2026-10-10 第二次審閱後再套用 21 項決策，見文末〈第二次審閱決策紀錄〉
+- 2026-10-10 M0 小實驗後改為只用 SerpApi，見文末〈M0 實驗決策紀錄〉
 
 ## 文件索引
 | 階段 | 文件 | 內容 |
@@ -33,10 +34,8 @@ flowchart TB
     cdn -->|"/api 和 /line/webhook，加上 X-Origin-Verify 標頭"| furl["Lambda Function URL（auth NONE）"]
     furl --> api["Lambda: api（FastAPI + Mangum）"]
 
-    sched6["EventBridge Scheduler（每 6 小時）"] --> checker["Lambda: price-checker"]
-    schedd["EventBridge Scheduler（每天，維護模式）"] --> checker
-    checker --> tp["Travelpayouts（雷達）"]
-    checker --> serp["SerpApi Google Flights（確認和巡檢）"]
+    sched["EventBridge Scheduler（每天：查價、維護）"] --> checker["Lambda: price-checker"]
+    checker --> serp["SerpApi Google Flights"]
     checker -->|alert| sqs["SQS"]
     sqs --> notifier["Lambda: notifier"]
     sqs -.->|重試失敗| dlq["DLQ"]
@@ -56,7 +55,7 @@ flowchart TB
 ## 里程碑
 | 里程碑 | 內容 |
 |---|---|
-| M0 | 前置驗證：Travelpayouts 小實驗、網域、DNS、SES 正式權限申請 |
+| M0 | 前置驗證：Travelpayouts 小實驗（已完成，結論是不採用）、網域、DNS、SES 正式權限申請 |
 | M1 | MVP 上線：帳號、追蹤、查價、站內通知與 Email、前端、Terraform 部署 |
 | M2 | LINE 綁定與推播 |
 | M3 | k8s（kind + Helm）與 Playwright E2E |
@@ -106,6 +105,24 @@ flowchart TB
 | 19 | 公開端點沒有頻率限制，驗證信可能被濫發 | v1 不做，有需要再補；靠 SES 退信率／投訴率告警發現，處理方式寫進 runbook |
 | 20 | 忘記密碼是否提前到 M1 | 維持 M4 |
 | 21 | 降級期間「只用 Travelpayouts」和「只有 SerpApi 價格能觸發」互相矛盾 | 降級期間照發，但只限 `below_target`，並標註參考值；另外兩種原因暫停 |
+
+## M0 實驗決策紀錄（2026-10-10）
+實驗內容：對 TPE 出發到 NRT、KIX、ICN、BKK、SIN 共 5 條航線，測 30、60、120 天後出發的單程和來回（來回為 5 天後回程），呼叫 Travelpayouts 的 Aviasales Data API。腳本在 `experiments/m0/travelpayouts_probe.py`。
+
+| 測試項目 | 結果 |
+|---|---|
+| 固定日期覆蓋率 | 30 個查詢只有 3 個有資料，各 1 筆 |
+| 其中來回票 | 15 個全部沒資料 |
+| 商務艙 | 5 條航線全部沒資料 |
+| 整個月的最新價格（經濟艙單程） | 每條航線 7～18 筆，資料年齡從幾小時到約 7 天 |
+
+| # | 問題 | 決定 |
+|---|---|---|
+| 1 | Travelpayouts 對台灣出發的固定日期查詢幾乎沒有資料，無法當雷達 | 不採用 Travelpayouts，只用 SerpApi |
+| 2 | 雷達、確認、降級相關的設計失去前提 | 作廢上表第 15、16、21 項和 2026-10-09 第 1、4 項中關於 Travelpayouts 的部分；額度用完改為暫停查價 |
+| 3 | 只靠 SerpApi 時額度更吃緊 | 來回票一次查價只算 1 次呼叫，訂票連結改用 Google Flights 網址；實作前用真實回應確認 |
+| 4 | 「每 6 小時查價」不再成立 | 排程改為每天一次，各 query 依最久沒查的順序輪流查價 |
+| 5 | 全站上限 20 個 query 時每個約 2.5 天才查一次（修正第二次審閱第 7 項） | 上限降為 8 個，每個 query 每天查一次；使用者是本人和極少數人，準確度和即時性優先於使用人數 |
 
 ---
 
