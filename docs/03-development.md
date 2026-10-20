@@ -28,7 +28,7 @@ Project_TicketTrack/
 
 **M0：前置驗證**
 - 小實驗（**已完成，2026-10-10**）：拿 5 條台灣出發的航線實際呼叫 Travelpayouts。結果覆蓋率太差，決定不採用、只用 SerpApi，見[總覽〈M0 實驗決策紀錄〉](architecture.md#m0-實驗決策紀錄2026-10-10)。腳本保留在 `experiments/m0/`
-- 開始實作 SerpApi adapter 前，先拿 1～2 筆真實回應確認來回票一次呼叫就能拿到總價和 `price_insights`
+- SerpApi 小實驗（**已完成，2026-10-20**）：確認來回票一次呼叫就能拿到總價和 `price_insights`，見[總覽〈M0 SerpApi 實驗紀錄〉](architecture.md#m0-serpapi-實驗紀錄2026-10-20)
 - 購買網域、Cloudflare 設定 DNS、申請 SES 正式使用權限（審核需要時間，提早送出）
 
 **M1：MVP 上線**

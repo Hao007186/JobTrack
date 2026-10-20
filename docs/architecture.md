@@ -11,6 +11,7 @@
 - 2026-10-09 審閱後已套用 12 項決策，見文末〈審閱決策紀錄〉
 - 2026-10-10 第二次審閱後再套用 21 項決策，見文末〈第二次審閱決策紀錄〉
 - 2026-10-10 M0 小實驗後改為只用 SerpApi，見文末〈M0 實驗決策紀錄〉
+- 2026-10-20 SerpApi 小實驗確認來回票一次呼叫就夠，見文末〈M0 SerpApi 實驗紀錄〉
 
 ## 文件索引
 | 階段 | 文件 | 內容 |
@@ -55,7 +56,7 @@ flowchart TB
 ## 里程碑
 | 里程碑 | 內容 |
 |---|---|
-| M0 | 前置驗證：Travelpayouts 小實驗（已完成，結論是不採用）、網域、DNS、SES 正式權限申請 |
+| M0 | 前置驗證：Travelpayouts 小實驗（已完成，結論是不採用）、SerpApi 小實驗（已完成）、網域、DNS、SES 正式權限申請 |
 | M1 | MVP 上線：帳號、追蹤、查價、站內通知與 Email、前端、Terraform 部署 |
 | M2 | LINE 綁定與推播 |
 | M3 | k8s（kind + Helm）與 Playwright E2E |
@@ -123,6 +124,24 @@ flowchart TB
 | 3 | 只靠 SerpApi 時額度更吃緊 | 來回票一次查價只算 1 次呼叫，訂票連結改用 Google Flights 網址；實作前用真實回應確認 |
 | 4 | 「每 6 小時查價」不再成立 | 排程改為每天一次，各 query 依最久沒查的順序輪流查價 |
 | 5 | 全站上限 20 個 query 時每個約 2.5 天才查一次（修正第二次審閱第 7 項） | 上限降為 8 個，每個 query 每天查一次；使用者是本人和極少數人，準確度和即時性優先於使用人數 |
+
+## M0 SerpApi 實驗紀錄（2026-10-20）
+實驗內容：TPE→NRT 來回、經濟艙、1 人，2026-12-19 出發、2026-12-24 回程，呼叫 1 次 SerpApi Google Flights。腳本在 `experiments/m0/serpapi_probe.py`。
+
+| 測試項目 | 結果 |
+|---|---|
+| 航班選項 | best 4 筆、other 19 筆，每筆 `type` 為 Round trip |
+| 價格是否為來回總價 | 是：最低一筆 10,372 TWD 等於 `price_insights.lowest_price`；每筆只列去程航段，回程要用 `departure_token` 再呼叫才看得到 |
+| `price_insights` | 有：`lowest_price`、`price_level`（typical）、`typical_price_range`（6,400～12,500）、`price_history`（每天 1 筆，約 60 天） |
+| 訂票連結 | `search_metadata.google_flights_url` 有值，帶入航線、日期、幣別與語系；手動開啟確認航線與日期正確 |
+| 航空公司欄位 | `airline` 是中文名稱（例如「樂桃航空」），不是 IATA 代碼 |
+
+| # | 問題 | 決定 |
+|---|---|---|
+| 1 | 來回票一次呼叫能否拿到總價（M0 實驗決策第 3 項的前提） | 成立：一次查價維持 1 次呼叫，全站上限 8 個 query 不變 |
+| 2 | 歷史最低價冷啟動 | 確認 `price_history` 可用，照原設計當起點 |
+| 3 | 依航空公司比對與顯示 | adapter 從 `flight_number` 或 `airline_logo` 取 IATA 代碼，不比對中文名稱 |
+| 4 | 指定航空公司時 `price_insights` 是否仍會回傳 | 尚未測試；實作 adapter 時錄製 fixture 確認，沒有就照「沒有 `price_insights`」處理 |
 
 ---
 
