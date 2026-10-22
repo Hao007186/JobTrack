@@ -14,5 +14,25 @@ services:
       interval: 2s
       retries: 15
 
+  api:
+    build: ../backend
+    env_file: ../backend/.env
+    # 基底 image 的預設進入點是 Lambda runtime，本機改跑 migration + uvicorn
+    # DATABASE_URL 在容器內用 POSTGRES_* 重組：要連主機名稱 postgres，不是 .env 裡給 Windows 用的 localhost
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        export DATABASE_URL="postgresql+psycopg://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@postgres:5432/$${POSTGRES_DB}"
+        && python -m alembic upgrade head
+        && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /var/task
+    volumes:
+      - ../backend/app:/var/task/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
