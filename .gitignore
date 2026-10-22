@@ -5,3 +5,4 @@ experiments/m0/output/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.claude/settings.local.json
