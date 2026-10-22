@@ -2,9 +2,14 @@ import asyncio
 import os
 import sys
 from collections.abc import AsyncIterator, Mapping
+from pathlib import Path
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy.engine import make_url
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent
 
 # 必須在 import app 之前設定，讓 get_settings() 讀到測試資料庫
 TEST_DATABASE_URL = os.environ.get(
@@ -39,13 +44,24 @@ def pytest_asyncio_loop_factories(
     return None
 
 
+def alembic_config(url: str) -> Config:
+    cfg = Config(str(BACKEND_DIR / "alembic.ini"))
+    cfg.set_main_option("sqlalchemy.url", url)
+    return cfg
+
+
 @pytest.fixture(scope="session")
 def test_database_url() -> str:
     return TEST_DATABASE_URL
 
 
+@pytest.fixture(scope="session", autouse=True)
+def migrated(test_database_url: str) -> None:
+    command.upgrade(alembic_config(test_database_url), "head")
+
+
 @pytest.fixture(scope="session")
-async def engine(test_database_url: str) -> AsyncIterator[AsyncEngine]:
+async def engine(migrated: None, test_database_url: str) -> AsyncIterator[AsyncEngine]:
     eng = create_async_engine(test_database_url, connect_args=CONNECT_ARGS)
     yield eng
     await eng.dispose()

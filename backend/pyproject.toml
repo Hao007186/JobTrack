@@ -22,10 +22,14 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 
+[tool.ruff.lint.isort]
+# backend/alembic/ 是 migration 資料夾，不是本地套件
+known-third-party = ["alembic"]
+
 [tool.mypy]
 strict = true
 plugins = ["pydantic.mypy"]
-files = ["app", "tests"]
+files = ["app", "tests", "alembic"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
