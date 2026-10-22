@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: farewatch
+          POSTGRES_PASSWORD: farewatch
+          POSTGRES_DB: farewatch_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U farewatch -d farewatch_test"
+          --health-interval 2s
+          --health-retries 15
+    env:
+      ENV: ci
+      DATABASE_URL: postgresql+psycopg://farewatch:farewatch@localhost:5432/farewatch_test
+      TEST_DATABASE_URL: postgresql+psycopg://farewatch:farewatch@localhost:5432/farewatch_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run mypy
+      - run: uv run pytest -v
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t farewatch-backend:ci backend
