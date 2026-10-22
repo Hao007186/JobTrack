@@ -40,7 +40,7 @@ backend/
 ├─ pyproject.toml          # 相依套件與 ruff、mypy、pytest 設定
 ├─ uv.lock
 ├─ alembic.ini
-├─ alembic/
+├─ migrations/             # Alembic；不叫 alembic/，避免和裝進 Lambda image 同目錄的 alembic 套件撞名
 │  ├─ env.py               # 從 app 設定讀 URL，用 async engine 執行 migration
 │  ├─ script.py.mako
 │  └─ versions/            # 目前是空的
@@ -83,7 +83,7 @@ deploy/docker-compose.yml
 
 ### Dockerfile
 - 基底：AWS Lambda Python 3.14 image（照 [02-design.md〈容器執行方式〉](../../02-design.md#容器執行方式)，#7 直接沿用）
-- 用 uv 依 `uv.lock` 安裝相依套件，複製 `app/`、`alembic/`、`alembic.ini`
+- 用 uv 依 `uv.lock` 安裝相依套件，複製 `app/`、`migrations/`、`alembic.ini`
 - 預設進入點保留 Lambda runtime；本機 compose 覆寫
 
 ### docker-compose（`deploy/docker-compose.yml`）

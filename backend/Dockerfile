@@ -18,7 +18,7 @@ RUN uv export --frozen --no-dev --no-hashes --no-emit-project -o requirements.tx
     && rm requirements.txt
 
 COPY alembic.ini ./
-COPY alembic ./alembic
+COPY migrations ./migrations
 COPY app ./app
 
 # Lambda handler 在 M1 子專案 #7（部署）加入
