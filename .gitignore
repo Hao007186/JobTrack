@@ -1,3 +1,8 @@
 .env
 __pycache__/
 experiments/m0/output/
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.claude/settings.local.json
