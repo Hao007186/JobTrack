@@ -1,6 +1,5 @@
 import asyncio
 import os
-import sys
 from collections.abc import AsyncIterator, Mapping
 from pathlib import Path
 
@@ -37,11 +36,10 @@ def pytest_configure(config: pytest.Config) -> None:
 
 def pytest_asyncio_loop_factories(
     config: pytest.Config, item: pytest.Item
-) -> Mapping[str, type[asyncio.AbstractEventLoop]] | None:
-    # psycopg async 不支援 Windows 預設的 ProactorEventLoop
-    if sys.platform == "win32":
-        return {"selector": asyncio.SelectorEventLoop}
-    return None
+) -> Mapping[str, type[asyncio.AbstractEventLoop]]:
+    # psycopg async 不支援 Windows 預設的 ProactorEventLoop；Linux 預設本來就是 SelectorEventLoop
+    # 有實作這個 hook 就必須回傳非空 mapping，回傳 None 會讓 pytest-asyncio 報 UsageError
+    return {"selector": asyncio.SelectorEventLoop}
 
 
 def alembic_config(url: str) -> Config:
