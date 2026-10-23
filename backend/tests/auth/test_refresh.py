@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import update
+from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -43,12 +43,16 @@ async def test_refresh_rotates(client: AsyncClient, user: User) -> None:
     assert cookie_token(resp) != t1
 
 
-async def test_reused_token_revokes_all(client: AsyncClient, user: User) -> None:
+async def test_reused_token_revokes_all(
+    client: AsyncClient, user: User, db_session: AsyncSession
+) -> None:
     a = await _login_token(client)
     b = await _login_token(client)
     a2 = cookie_token(await refresh_with(client, a))
 
     reused = await refresh_with(client, a)
+    # 正式環境請求結束時會丟棄沒 commit 的變更；這裡模擬它，確認作廢結果真的有 commit
+    await db_session.rollback()
     _assert_rejected_and_cleared(
         reused.status_code, reused.json()["detail"], reused.headers["set-cookie"]
     )
@@ -105,3 +109,23 @@ async def test_missing_cookie_rejected(client: AsyncClient) -> None:
     _assert_rejected_and_cleared(
         resp.status_code, resp.json()["detail"], resp.headers["set-cookie"]
     )
+
+
+async def test_concurrent_refresh_only_one_wins(
+    client: AsyncClient, user: User, db_session: AsyncSession
+) -> None:
+    a = await _login_token(client)
+    b = await _login_token(client)
+    # 這個請求先讀到「a 尚未作廢」（保留參照，session 才不會重新從 DB 讀取）
+    stale = await db_session.scalar(
+        select(RefreshToken).where(RefreshToken.token_hash == hash_refresh_token(a))
+    )
+    # 同時另一個請求搶先輪換了 a：直接改 DB，不更新 session 裡已讀到的物件
+    await db_session.execute(
+        text("UPDATE refresh_tokens SET revoked_at = now() WHERE token_hash = :h"),
+        {"h": hash_refresh_token(a)},
+    )
+    # 慢的那個請求不能再拿到新 token，而且要當成重用處理
+    assert (await refresh_with(client, a)).status_code == 401
+    assert (await refresh_with(client, b)).status_code == 401
+    assert stale is not None

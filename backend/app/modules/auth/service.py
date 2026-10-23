@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import NoReturn
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -99,7 +100,14 @@ async def register(
 async def login(
     session: AsyncSession, settings: Settings, *, email: str, password: str
 ) -> TokenPair:
-    user = await get_user_by_email(session, normalize_email(email))
+    # FOR UPDATE：同一帳號的登入依序處理，平行送出的錯誤密碼才不會讀到同一個失敗次數而少算；
+    # populate_existing 確保拿到的是 DB 最新值，不是 session 裡的舊物件
+    user = await session.scalar(
+        select(User)
+        .where(User.email == normalize_email(email))
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if user is None:
         security.verify_dummy_password(password)
         raise InvalidCredentials
@@ -138,24 +146,37 @@ async def refresh(session: AsyncSession, settings: Settings, *, refresh_token: s
     now = datetime.now(UTC)
 
     if token.revoked_at is not None:
-        # 正常使用者手上只會有最新的 token；舊 token 被重用代表可能被偷，作廢該使用者全部 token。
-        # 示範帳號由多位訪客共用，只拒絕這一次，避免一人重用就把所有人踢出
-        if not user.is_demo:
-            await session.execute(
-                update(RefreshToken)
-                .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-                .values(revoked_at=now)
-            )
-            # 先 commit 再丟例外，否則 router 回 401 時作廢結果會跟著 session 被丟棄
-            await session.commit()
-        raise InvalidRefreshToken
+        await _handle_reuse(session, user, now)
 
     if token.expires_at <= now or not user.is_active:
         raise InvalidRefreshToken
 
-    token.revoked_at = now
+    # 條件式作廢：只有 revoked_at 仍為 NULL 才成功。兩個請求同時用同一張 token 時，
+    # 只有一個能搶到，慢的那個視為重用
+    claimed = await session.scalar(
+        update(RefreshToken)
+        .where(RefreshToken.id == token.id, RefreshToken.revoked_at.is_(None))
+        .values(revoked_at=now)
+        .returning(RefreshToken.id)
+    )
+    if claimed is None:
+        await _handle_reuse(session, user, now)
     # issue_tokens 會 commit，作廢舊 token 和發新 token 在同一個 transaction
     return await issue_tokens(session, settings, user)
+
+
+async def _handle_reuse(session: AsyncSession, user: User, now: datetime) -> NoReturn:
+    # 正常使用者手上只會有最新的 token；舊 token 被重用代表可能被偷，作廢該使用者全部 token。
+    # 示範帳號由多位訪客共用，只拒絕這一次，避免一人重用就把所有人踢出
+    if not user.is_demo:
+        await session.execute(
+            update(RefreshToken)
+            .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+            .values(revoked_at=now)
+        )
+        # 先 commit 再丟例外，否則 router 回 401 時作廢結果會跟著 session 被丟棄
+        await session.commit()
+    raise InvalidRefreshToken
 
 
 async def logout(session: AsyncSession, *, refresh_token: str | None) -> None:

@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from httpx import AsyncClient, Response
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.auth.service import DEMO_EMAIL
@@ -109,3 +110,16 @@ async def test_demo_user_cannot_password_login(
 async def test_demo_email_cannot_password_login(client: AsyncClient) -> None:
     resp = await client.post(URL, json={"email": DEMO_EMAIL, "password": "x" * 8})
     assert resp.status_code == 422
+
+
+async def test_concurrent_failures_all_count(
+    client: AsyncClient, user: User, db_session: AsyncSession
+) -> None:
+    # 這個請求讀到的失敗次數是 0（user fixture 已載入 session）；
+    # 同時其他平行請求已經累加到 4 次
+    await db_session.execute(
+        text("UPDATE users SET failed_login_count = 4 WHERE id = :id"), {"id": user.id}
+    )
+    assert (await _login(client, "wrong-horse")).status_code == 401
+    # 第 5 次失敗必須以 DB 的最新值累加，觸發鎖定
+    assert (await _login(client)).status_code == 423
