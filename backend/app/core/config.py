@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     env: Literal["local", "ci", "prod"] = "local"
     log_level: str = "INFO"
 
+    jwt_secret: str
+    access_token_minutes: int = 15
+    refresh_token_days: int = 7
+    # 本機用 http 開發時在 .env 設 false，否則瀏覽器不會送出 cookie
+    cookie_secure: bool = True
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, v: str) -> str:

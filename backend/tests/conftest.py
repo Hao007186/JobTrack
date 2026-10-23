@@ -16,13 +16,19 @@ TEST_DATABASE_URL = os.environ.get(
     "postgresql+psycopg://farewatch:farewatch@localhost:5432/farewatch_test",
 )
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
+# 環境變數優先於 .env；避免本機 .env 的 COOKIE_SECURE=false 讓 cookie 測試在本機和 CI 結果不同
+os.environ["COOKIE_SECURE"] = "true"
 
+from fastapi import FastAPI  # noqa: E402
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine  # noqa: E402
 
 from app.core.config import get_settings  # noqa: E402
 from app.db.session import CONNECT_ARGS, get_session  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.modules.auth.security import hash_password  # noqa: E402
+from app.modules.users.models import User  # noqa: E402
 
 get_settings.cache_clear()
 
@@ -79,12 +85,38 @@ async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
 
 @pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncIterator[AsyncClient]:
-    app = create_app()
+def app(db_session: AsyncSession) -> FastAPI:
+    application = create_app()
 
     async def _override_session() -> AsyncIterator[AsyncSession]:
         yield db_session
 
-    app.dependency_overrides[get_session] = _override_session
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+    application.dependency_overrides[get_session] = _override_session
+    return application
+
+
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
+    # 用 https：refresh cookie 帶 Secure，http 下 httpx 不會送出
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="https://test") as c:
         yield c
+
+
+async def create_user(
+    session: AsyncSession,
+    *,
+    email: str = "alice@example.com",
+    password: str = "correct-horse",
+    is_demo: bool = False,
+    is_active: bool = True,
+) -> User:
+    user = User(
+        email=email,
+        password_hash=hash_password(password),
+        is_demo=is_demo,
+        is_active=is_active,
+    )
+    session.add(user)
+    await session.flush()
+    await session.refresh(user)
+    return user

@@ -21,7 +21,7 @@
 | SerpApi 停止服務或長期無法使用 | 查價暫停，發系統通知；透過 `PriceProvider` 介面換接其他供應商（例如 Duffel adapter） |
 | LINE 推播失敗或額度用完 | 改由 Email 送達；DLQ 告警後人工檢查 |
 | SES 正式權限被拒或帳號被暫停 | `EmailSender` 切換到 Gmail SMTP 備案；檢查退信／投訴原因後重新申請 |
-| 註冊或重寄驗證信被濫用（SES 退信率／投訴率告警） | 先暫時關閉註冊；再補上註冊頻率限制或 Cloudflare Turnstile，並對 Lambda 設 reserved concurrency |
+| 註冊被濫用、價格通知寄到被冒用的信箱（退信率／投訴率告警） | 先暫時關閉註冊；再補上註冊頻率限制或 Cloudflare Turnstile，並對 Lambda 設 reserved concurrency |
 | 外部 API 格式改變 | 契約測試會在 CI 失敗；adapter 記錄錯誤並跳過，不影響其他供應商 |
 | 部署後出錯 | 依[階段 5〈回滾策略〉](05-deployment.md#回滾策略)回滾 |
 | Neon 資料異常 | 剛發生的用 point-in-time restore；其餘從每週的 `pg_dump` 備份（存 S3，保留 4 份）還原 |
