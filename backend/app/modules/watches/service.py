@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import date, timedelta
 
 from sqlalchemy import func, select
@@ -11,11 +12,13 @@ from app.modules.reference.models import ORIGIN_COUNTRY, Airline, Airport
 from app.modules.users.models import User
 from app.modules.watches import slots
 from app.modules.watches.models import PriceQuery, Watch
-from app.modules.watches.schemas import WatchCreate
+from app.modules.watches.schemas import WatchCreate, WatchUpdate
 from app.modules.watches.slots import QueryConditions
 
 MIN_DAYS_AHEAD = 3
 MAX_DAYS_AHEAD = 330
+# WatchUpdate 中屬於查價條件的欄位
+_CONDITION_FIELDS = ("origin", "destination", "depart_date", "return_date", "cabin", "adults")
 
 
 class WatchNotFound(Exception):
@@ -126,3 +129,65 @@ async def get_watch(session: AsyncSession, user: User, public_id: uuid.UUID) -> 
     if watch is None:
         raise WatchNotFound
     return watch
+
+
+def _merged_conditions(old: QueryConditions, data: WatchUpdate) -> QueryConditions:
+    sent = data.model_fields_set
+    changes: dict[str, object] = {}
+    for field in _CONDITION_FIELDS:
+        value = getattr(data, field)
+        # return_date 送 null 代表改成單程；其他欄位送 null 視為不改
+        if field in sent and (value is not None or field == "return_date"):
+            changes[field] = value
+    if "airlines" in sent and data.airlines is not None:
+        changes["airlines"] = tuple(data.airlines)
+    return replace(old, **changes)  # type: ignore[arg-type]
+
+
+async def update_watch(
+    session: AsyncSession, user: User, public_id: uuid.UUID, data: WatchUpdate, today: date
+) -> Watch:
+    await slots.acquire_watch_lock(session)
+    watch = await get_watch(session, user, public_id)
+    if watch.status == "expired":
+        raise WatchExpired
+
+    old = conditions_of(watch.price_query)
+    new = _merged_conditions(old, data)
+    # 比較值而不是看有沒有送：前端可能把整份表單原封不動送回
+    if new != old:
+        await validate_conditions(session, new, today)
+        query = await slots.get_or_create_price_query(session, new)
+        watch.price_query = query
+        if watch.status != "paused":
+            # 先視為不佔名額，再依新條件決定狀態
+            watch.status = "queued"
+            await session.flush()
+            watch.status = await slots.decide_status(session, query, today)
+
+    if data.target_price is not None:
+        watch.target_price = data.target_price
+
+    if data.status == "paused" and watch.status in ("active", "queued"):
+        watch.status = "paused"
+    elif data.status == "active" and watch.status == "paused":
+        if await slots.count_user_slots(session, user.id) >= slots.MAX_WATCHES_PER_USER:
+            raise WatchLimitReached
+        watch.status = await slots.decide_status(session, watch.price_query, today)
+
+    await session.flush()
+    await slots.rebalance(session, today)
+    await session.commit()
+    return await get_watch(session, user, public_id)
+
+
+async def delete_watch(
+    session: AsyncSession, user: User, public_id: uuid.UUID, today: date
+) -> None:
+    await slots.acquire_watch_lock(session)
+    watch = await get_watch(session, user, public_id)
+    # price_query 保留，之後的價格歷史會掛在它上面
+    await session.delete(watch)
+    await session.flush()
+    await slots.rebalance(session, today)
+    await session.commit()
