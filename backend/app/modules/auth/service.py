@@ -170,3 +170,10 @@ async def logout(session: AsyncSession, *, refresh_token: str | None) -> None:
         .values(revoked_at=datetime.now(UTC))
     )
     await session.commit()
+
+
+async def demo_login(session: AsyncSession, settings: Settings) -> TokenPair:
+    user = await session.scalar(select(User).where(User.email == DEMO_EMAIL, User.is_demo))
+    if user is None:
+        raise DemoUserMissing
+    return await issue_tokens(session, settings, user)

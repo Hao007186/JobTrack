@@ -109,3 +109,12 @@ async def logout(
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     clear_refresh_cookie(response, settings)
     return response
+
+
+@router.post("/demo")
+async def demo(response: Response, session: SessionDep, settings: SettingsDep) -> TokenResponse:
+    try:
+        pair = await service.demo_login(session, settings)
+    except service.DemoUserMissing:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "示範帳號尚未建立") from None
+    return _token_response(response, pair, settings)

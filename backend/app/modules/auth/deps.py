@@ -43,3 +43,12 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def require_writable_user(user: CurrentUser) -> User:
+    if user.is_demo:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="示範帳號為唯讀")
+    return user
+
+
+WritableUser = Annotated[User, Depends(require_writable_user)]
