@@ -39,7 +39,7 @@ EventBridge Scheduler（每天）──► Lambda: price-checker
      3. 套用觸發規則 → 狀態變化才寫入 alerts，送到 SQS
 EventBridge Scheduler（每天）──► Lambda: price-checker（維護模式）
      - 出發日已過的 watch 標記為 expired
-     - 全站有空位時，把最早排隊的 watch 轉為 active
+     - 標記過期後補位（平時名額空出時已經立刻補位）
      - 超過保留期限的 price_snapshots 彙總成每日最低價後刪除
 SQS ──► Lambda: notifier ──► 站內通知（notifications）+ Email（SES）+ LINE Messaging API（有綁定才發）
         （每個管道各自記錄狀態；失敗由 SQS 重試，最後進 DLQ）
@@ -136,7 +136,7 @@ sequenceDiagram
 | 狀態 | 說明 |
 |---|---|
 | `active` | 正常查價 |
-| `queued` | 排隊中：全站 active price_query 已滿 8 個，暫不查價；有空位時由每日排程依建立時間轉為 `active` |
+| `queued` | 排隊中：全站佔名額的 price_query 已滿 8 個，暫不查價；名額空出時立刻依建立時間轉為 `active` |
 | `paused` | 使用者暫停，不查價 |
 | `expired` | 出發日已過，由每日排程自動標記；前端收到「歷史紀錄」分頁，價格圖保留 |
 
@@ -144,7 +144,7 @@ sequenceDiagram
 stateDiagram-v2
     [*] --> active: 新增（有名額，或對應既有 query）
     [*] --> queued: 新增（全站 8 個 query 已滿）
-    queued --> active: 每日排程發現空位
+    queued --> active: 名額空出
     active --> paused: 使用者暫停
     paused --> active: 恢復（有名額）
     paused --> queued: 恢復（已滿）
@@ -160,6 +160,8 @@ stateDiagram-v2
 - 新增或編輯追蹤時，依條件（出發地、目的地、去回程日期、艙等、人數、航空公司、是否為示範資料）算出 `query_hash`：已存在就沿用該 price_query，否則建立新的，再把 `watches.price_query_id` 指過去。改日期等於換一個查詢，價格歷史從頭累積。
 - 編輯目標價、日期或其他查價條件後，該 watch 的 `watch_alert_states` 重置為初始狀態，避免沿用舊條件的通知狀態。
 - 新追蹤若對應到已經在查價的 price_query，不佔新名額，直接 `active`；需要新 query 而全站已滿時才進 `queued`。恢復 `paused` 的追蹤時套用同樣規則。
+- **佔名額**：price_query 至少有 1 個 `active` 追蹤、不是示範資料，而且出發日在 2 天以後。出發日在 2 天內的 query 已停止查價，不佔名額；這類排隊中的追蹤也不會被啟用，等著被標成過期。
+- **立刻補位**：新增、編輯、暫停、恢復、刪除後，在同一個 transaction 內依建立時間啟用排隊中的追蹤（同一個 query 的排隊者一起啟用）；每日維護只處理過期釋出的名額。這些操作先取得全站 advisory lock，避免兩個請求同時讀到「還有空位」。詳見 [#3 設計](superpowers/specs/2026-10-23-m1-watches-design.md)
 - 沒有任何 `active` watch 的 price_query 不再查價，但保留價格歷史。
 
 ## 帳號與驗證設計
@@ -199,7 +201,7 @@ sequenceDiagram
 ```
 
 ## 資料模型
-圖中只畫資料表之間的關聯和主鍵、外鍵、唯一鍵，型別僅為示意；完整欄位以圖下方的清單為準。`airports` 和 `api_usage` 沒有外鍵關聯，所以不在圖中。
+圖中只畫資料表之間的關聯和主鍵、外鍵、唯一鍵，型別僅為示意；完整欄位以圖下方的清單為準。`airlines` 和 `api_usage` 沒有外鍵關聯，所以不在圖中。
 
 ```mermaid
 erDiagram
@@ -212,8 +214,7 @@ erDiagram
     price_queries ||--o{ price_snapshots : records
     price_queries ||--o{ price_daily_lows : aggregates
     price_queries ||--o| price_baselines : has
-    watches ||--o{ watch_airlines : filters
-    airlines ||--o{ watch_airlines : selected
+    airports ||--o{ price_queries : "origin / destination"
     watches ||--o| watch_alert_states : has
     watches ||--o{ alerts : triggers
     price_snapshots |o--o{ alerts : source
@@ -245,11 +246,7 @@ erDiagram
         int price_query_id FK
         string status
     }
-    watch_airlines {
-        int watch_id FK
-        string airline_iata FK
-    }
-    airlines {
+    airports {
         string iata PK
     }
     price_snapshots {
@@ -288,9 +285,9 @@ erDiagram
 - `refresh_tokens`(id, user_id, token_hash, expires_at, revoked_at)
 - `line_accounts`(user_id PK/FK, line_user_id UQ, display_name, is_friend, linked_at)
 - `notification_settings`(user_id, email_enabled, line_enabled)
-- `airports`(iata PK, name_zh, city, country)、`airlines`(iata PK, name_zh)
-- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines_key, is_demo, last_checked_at)：`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
-- `watches`(id, public_id, user_id, **price_query_id FK**, origin, destination, depart_date, return_date NULL, trip_type, cabin, adults, **target_price NOT NULL**, currency, **status**(active/queued/paused/expired), timestamps)、`watch_airlines`(watch_id, airline_iata)
+- `airports`(iata PK, name_zh, city_zh, country)、`airlines`(iata PK, name_zh)：精選清單，資料放在 `backend/app/seeds/data/*.csv`
+- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines（排序後的 IATA 陣列，空 = 全部）, is_demo, last_checked_at（M1 #4 加入）)：查價條件只存在這裡；`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
+- `watches`(id, public_id, user_id, **price_query_id FK**, **target_price NOT NULL**, **status**(active/queued/paused/expired), timestamps)：不重複存查價條件；單程／來回由 `return_date` 判斷，v1 一律 TWD
 - `price_snapshots`(id, price_query_id, provider, price, currency, airline_iata, stops, booking_url, observed_at)：只新增不修改
 - `price_daily_lows`(price_query_id, date, provider, min_price, currency)，PK(price_query_id, date, provider)：超過保留期限的 snapshots 彙總到這裡
 - `price_baselines`(price_query_id PK, typical_low, typical_high, record_low, sample_count, source, updated_at)
@@ -303,9 +300,9 @@ erDiagram
 ## API 草案（/api/v1，FastAPI 自動產生 OpenAPI 文件）
 - Auth：`POST /auth/register|login|refresh|logout|demo`、`GET /me`
 - LINE：`GET /me/line/link`、`GET /auth/line/callback`、`GET/DELETE /me/line`、`POST /line/webhook`
-- Watches：`GET/POST /watches`（`?status=` 篩選）、`GET/PATCH/DELETE /watches/{id}`、`GET /watches/{id}/prices?range=`、`GET /watches/{id}/baseline`
+- Watches：`GET/POST /watches`（`?status=` 篩選）、`GET/PATCH/DELETE /watches/{id}`（PATCH 也用來暫停／恢復）、`GET /watches/{id}/prices?range=`、`GET /watches/{id}/baseline`
 - 通知：`GET /notifications`、`PATCH /notifications/{id}/read`、`POST /notifications/read-all`、`GET/PATCH /me/notification-settings`
-- 參考資料：`GET /airports?q=`、`GET /airlines`；Admin：`GET /admin/usage`
+- 參考資料：`GET /airports`、`GET /airlines`；Admin：`GET /admin/usage`
 - 健康檢查：`GET /health`
 
 ## 前端頁面
