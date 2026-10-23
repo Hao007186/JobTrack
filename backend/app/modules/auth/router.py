@@ -1,6 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
@@ -76,3 +77,35 @@ async def login(
     except service.AccountLocked:
         raise HTTPException(status.HTTP_423_LOCKED, "登入失敗次數過多，請稍後再試") from None
     return _token_response(response, pair, settings)
+
+
+RefreshCookie = Annotated[str | None, Cookie(alias=REFRESH_COOKIE)]
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh(
+    response: Response,
+    session: SessionDep,
+    settings: SettingsDep,
+    refresh_token: RefreshCookie = None,
+) -> TokenResponse | JSONResponse:
+    try:
+        if refresh_token is None:
+            raise service.InvalidRefreshToken
+        pair = await service.refresh(session, settings, refresh_token=refresh_token)
+    except service.InvalidRefreshToken:
+        # 用 HTTPException 的話，對 response 做的 cookie 刪除不會帶出去
+        rejected = JSONResponse({"detail": "請重新登入"}, status_code=status.HTTP_401_UNAUTHORIZED)
+        clear_refresh_cookie(rejected, settings)
+        return rejected
+    return _token_response(response, pair, settings)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    session: SessionDep, settings: SettingsDep, refresh_token: RefreshCookie = None
+) -> Response:
+    await service.logout(session, refresh_token=refresh_token)
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    clear_refresh_cookie(response, settings)
+    return response

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -123,3 +123,50 @@ async def login(
     user.failed_login_count = 0
     user.locked_until = None
     return await issue_tokens(session, settings, user)
+
+
+async def refresh(session: AsyncSession, settings: Settings, *, refresh_token: str) -> TokenPair:
+    row = await session.execute(
+        select(RefreshToken, User)
+        .join(User, RefreshToken.user_id == User.id)
+        .where(RefreshToken.token_hash == security.hash_refresh_token(refresh_token))
+    )
+    found = row.one_or_none()
+    if found is None:
+        raise InvalidRefreshToken
+    token, user = found
+    now = datetime.now(UTC)
+
+    if token.revoked_at is not None:
+        # 正常使用者手上只會有最新的 token；舊 token 被重用代表可能被偷，作廢該使用者全部 token。
+        # 示範帳號由多位訪客共用，只拒絕這一次，避免一人重用就把所有人踢出
+        if not user.is_demo:
+            await session.execute(
+                update(RefreshToken)
+                .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+                .values(revoked_at=now)
+            )
+            # 先 commit 再丟例外，否則 router 回 401 時作廢結果會跟著 session 被丟棄
+            await session.commit()
+        raise InvalidRefreshToken
+
+    if token.expires_at <= now or not user.is_active:
+        raise InvalidRefreshToken
+
+    token.revoked_at = now
+    # issue_tokens 會 commit，作廢舊 token 和發新 token 在同一個 transaction
+    return await issue_tokens(session, settings, user)
+
+
+async def logout(session: AsyncSession, *, refresh_token: str | None) -> None:
+    if refresh_token is None:
+        return
+    await session.execute(
+        update(RefreshToken)
+        .where(
+            RefreshToken.token_hash == security.hash_refresh_token(refresh_token),
+            RefreshToken.revoked_at.is_(None),
+        )
+        .values(revoked_at=datetime.now(UTC))
+    )
+    await session.commit()
