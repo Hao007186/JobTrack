@@ -1,0 +1,1145 @@
+{
+  "search_metadata": {
+    "id": "6adb36db83ab73967746cb3f",
+    "status": "Success",
+    "json_endpoint": "https://serpapi.com/searches/kqyhxrehXphZqDYTLz-sQUTo6eR6Ek768A-aa44UBhE/6adb36db83ab73967746cb3f.json",
+    "markdown_endpoint": "https://serpapi.com/searches/kqyhxrehXphZqDYTLz-sQUTo6eR6Ek768A-aa44UBhE/6adb36db83ab73967746cb3f.md",
+    "created_at": "2026-10-23 10:28:43 UTC",
+    "processed_at": "2026-10-23 10:28:43 UTC",
+    "google_flights_url": "https://www.google.com/travel/flights?hl=zh-TW&gl=tw&curr=TWD&tfs=CBwQAhoeEgoyMDI2LTEyLTIyagcIARIDVFBFcgcIARIDTlJUQAFIAXABmAEC&tfu=EgIIAQ",
+    "raw_html_file": "https://serpapi.com/searches/kqyhxrehXphZqDYTLz-sQUTo6eR6Ek768A-aa44UBhE/6adb36db83ab73967746cb3f.html",
+    "prettify_html_file": "https://serpapi.com/searches/kqyhxrehXphZqDYTLz-sQUTo6eR6Ek768A-aa44UBhE/6adb36db83ab73967746cb3f.prettify",
+    "total_time_taken": 1.61
+  },
+  "search_parameters": {
+    "engine": "google_flights",
+    "hl": "zh-TW",
+    "gl": "tw",
+    "type": "2",
+    "departure_id": "TPE",
+    "arrival_id": "NRT",
+    "outbound_date": "2026-12-22",
+    "travel_class": 1,
+    "adults": 1,
+    "currency": "TWD"
+  },
+  "best_flights": [
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 02:25"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 06:30"
+          },
+          "duration": 185,
+          "airplane": "Airbus A320neo",
+          "airline": "樂桃航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+          "travel_class": "Economy",
+          "flight_number": "MM 620",
+          "extensions": [
+            "Carbon emissions estimate: 150 kg"
+          ],
+          "overnight": true
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 151000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -7
+      },
+      "price": 4840,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZOVFRZeU1Cb0tDT2dsRUFBYUExUlhSRGdjY1A1eiIsW1siVFBFIiwiMjAyNi0xMi0yMiIsIk5SVCIsbnVsbCwiTU0iLCI2MjAiXV1d"
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 12:10"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 16:25"
+          },
+          "duration": 195,
+          "airplane": "Boeing 737",
+          "airline": "泰國獅航",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/SL.png",
+          "travel_class": "Economy",
+          "flight_number": "SL 394",
+          "legroom": "74 公分",
+          "extensions": [
+            "Below average legroom (74 公分)",
+            "Carbon emissions estimate: 171 kg"
+          ]
+        }
+      ],
+      "total_duration": 195,
+      "carbon_emissions": {
+        "this_flight": 171000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 5
+      },
+      "price": 5152,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/SL.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZUVERNNU5Cb0tDS0FvRUFBYUExUlhSRGdjY0x0NyIsW1siVFBFIiwiMjAyNi0xMi0yMiIsIk5SVCIsbnVsbCwiU0wiLCIzOTQiXV1d"
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 15:35"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 19:35"
+          },
+          "duration": 180,
+          "airplane": "Airbus A320",
+          "airline": "台灣虎航",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/IT.png",
+          "travel_class": "Economy",
+          "flight_number": "IT 202",
+          "extensions": [
+            "Carbon emissions estimate: 181 kg"
+          ],
+          "often_delayed_by_over_30_min": true
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 182000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 12
+      },
+      "price": 5599,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/IT.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZKVkRJd01ob0tDTjhyRUFBYUExUlhSRGdjY0phR0FRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIklUIiwiMjAyIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 14:30"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 18:30"
+          },
+          "duration": 180,
+          "airplane": "Boeing 787",
+          "airline": "酷航",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/TR.png",
+          "travel_class": "Economy",
+          "flight_number": "TR 874",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power outlet",
+            "Carbon emissions estimate: 134 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 135000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -17
+      },
+      "price": 5733,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/TR.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZVVWpnM05Cb0tDT1VzRUFBYUExUlhSRGdjY0xHSkFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIlRSIiwiODc0Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 12:50"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 16:55"
+          },
+          "duration": 185,
+          "airplane": "Airbus A320",
+          "airline": "捷星日本航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/GK.png",
+          "travel_class": "Economy",
+          "flight_number": "GK 14",
+          "legroom": "74 公分",
+          "extensions": [
+            "Below average legroom (74 公分)",
+            "Carbon emissions estimate: 185 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 186000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 14
+      },
+      "price": 6163,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/GK.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1JIU3pFMEdnb0lrekFRQUJvRFZGZEVPQnh3MkpNQiIsW1siVFBFIiwiMjAyNi0xMi0yMiIsIk5SVCIsbnVsbCwiR0siLCIxNCJdXV0="
+    }
+  ],
+  "other_flights": [
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 10:40"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 14:55"
+          },
+          "duration": 195,
+          "airplane": "Airbus A320neo",
+          "airline": "樂桃航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+          "travel_class": "Economy",
+          "flight_number": "MM 626",
+          "extensions": [
+            "Carbon emissions estimate: 150 kg"
+          ]
+        }
+      ],
+      "total_duration": 195,
+      "carbon_emissions": {
+        "this_flight": 151000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -7
+      },
+      "price": 5240,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZOVFRZeU5ob0tDUGdvRUFBYUExUlhSRGdjY01sOSIsW1siVFBFIiwiMjAyNi0xMi0yMiIsIk5SVCIsbnVsbCwiTU0iLCI2MjYiXV1d"
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 17:10"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 21:25"
+          },
+          "duration": 195,
+          "airplane": "Airbus A320neo",
+          "airline": "樂桃航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+          "travel_class": "Economy",
+          "flight_number": "MM 628",
+          "extensions": [
+            "Carbon emissions estimate: 150 kg"
+          ]
+        }
+      ],
+      "total_duration": 195,
+      "carbon_emissions": {
+        "this_flight": 151000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -7
+      },
+      "price": 5240,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/MM.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZOVFRZeU9Cb0tDUGdvRUFBYUExUlhSRGdjY01sOSIsW1siVFBFIiwiMjAyNi0xMi0yMiIsIk5SVCIsbnVsbCwiTU0iLCI2MjgiXV1d"
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 06:50"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 10:55"
+          },
+          "duration": 185,
+          "airplane": "Boeing 787",
+          "airline": "酷航",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/TR.png",
+          "travel_class": "Economy",
+          "flight_number": "TR 866",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power outlet",
+            "Carbon emissions estimate: 134 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 135000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -17
+      },
+      "price": 5733,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/TR.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZVVWpnMk5ob0tDT1VzRUFBYUExUlhSRGdjY0xHSkFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIlRSIiwiODY2Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 06:35"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 10:35"
+          },
+          "duration": 180,
+          "airplane": "Airbus A320",
+          "airline": "台灣虎航",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/IT.png",
+          "travel_class": "Economy",
+          "flight_number": "IT 200",
+          "extensions": [
+            "Carbon emissions estimate: 181 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 182000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 12
+      },
+      "price": 6099,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/IT.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZKVkRJd01Cb0tDTk12RUFBYUExUlhSRGdjY0pTU0FRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIklUIiwiMjAwIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 14:25"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 18:30"
+          },
+          "duration": 185,
+          "airplane": "Airbus A330",
+          "airline": "中華航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+          "travel_class": "Economy",
+          "flight_number": "CI 108",
+          "ticket_also_sold_by": [
+            "日本航空"
+          ],
+          "legroom": "81 公分",
+          "extensions": [
+            "Above average legroom (81 公分)",
+            "In-seat USB outlet",
+            "On-demand video",
+            "Carbon emissions estimate: 170 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 171000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 5
+      },
+      "price": 8989,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZEU1RFd09Cb0tDSjFHRUFBYUExUlhSRGdjY0xYWEFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkNJIiwiMTA4Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 15:00"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 19:00"
+          },
+          "duration": 180,
+          "airplane": "Airbus A350",
+          "airline": "星宇航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+          "travel_class": "Economy",
+          "flight_number": "JX 804",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 166 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 166000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 2
+      },
+      "price": 8989,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZLV0Rnd05Cb0tDSjFHRUFBYUExUlhSRGdjY0xYWEFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkpYIiwiODA0Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 16:25"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 20:30"
+          },
+          "duration": 185,
+          "airplane": "Airbus A321neo",
+          "airline": "中華航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+          "travel_class": "Economy",
+          "flight_number": "CI 106",
+          "ticket_also_sold_by": [
+            "日本航空"
+          ],
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat USB outlet",
+            "On-demand video",
+            "Carbon emissions estimate: 203 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 203000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 25
+      },
+      "price": 8989,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZEU1RFd05ob0tDSjFHRUFBYUExUlhSRGdjY0xYWEFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkNJIiwiMTA2Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 12:35"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 16:35"
+          },
+          "duration": 180,
+          "airplane": "Airbus A350",
+          "airline": "中華航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+          "travel_class": "Economy",
+          "flight_number": "CI 104",
+          "ticket_also_sold_by": [
+            "日本航空"
+          ],
+          "legroom": "81 公分",
+          "extensions": [
+            "Above average legroom (81 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 184 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 184000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 13
+      },
+      "price": 9253,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZEU1RFd05Cb0tDS1ZJRUFBYUExUlhSRGdjY04vZEFRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkNJIiwiMTA0Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 09:30"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 13:30"
+          },
+          "duration": 180,
+          "airplane": "Airbus A350",
+          "airline": "中華航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+          "travel_class": "Economy",
+          "flight_number": "CI 100",
+          "ticket_also_sold_by": [
+            "日本航空"
+          ],
+          "legroom": "81 公分",
+          "extensions": [
+            "Above average legroom (81 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 184 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 184000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 13
+      },
+      "price": 9862,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CI.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZEU1RFd01Cb0tDSVpORUFBYUExUlhSRGdjY0t2c0FRPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkNJIiwiMTAwIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 12:50"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 16:50"
+          },
+          "duration": 180,
+          "airplane": "Boeing 777",
+          "airline": "國泰航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CX.png",
+          "travel_class": "Economy",
+          "flight_number": "CX 450",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 143 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 143000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -12
+      },
+      "price": 11022,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/CX.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZEV0RRMU1Cb0tDSTVXRUFBYUExUlhSRGdjY0pHSUFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkNYIiwiNDUwIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 10:40"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 14:40"
+          },
+          "duration": 180,
+          "airplane": "Boeing 737",
+          "airline": "日本航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JL.png",
+          "travel_class": "Economy",
+          "flight_number": "JL 802",
+          "ticket_also_sold_by": [
+            "中華航空"
+          ],
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Some seats with power outlet",
+            "On-demand video",
+            "Carbon emissions estimate: 241 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 241000,
+        "typical_for_this_route": 163000,
+        "difference_percent": 48
+      },
+      "price": 12183,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JL.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZLVERnd01ob0tDSmRmRUFBYUExUlhSRGdjY1BxakFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkpMIiwiODAyIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 08:25"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 12:35"
+          },
+          "duration": 190,
+          "airplane": "Airbus A350",
+          "airline": "星宇航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+          "travel_class": "Economy",
+          "flight_number": "JX 800",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 155 kg"
+          ]
+        }
+      ],
+      "total_duration": 190,
+      "carbon_emissions": {
+        "this_flight": 155000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -5
+      },
+      "price": 12338,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZLV0Rnd01Cb0tDTEpnRUFBYUExUlhSRGdjY05XbkFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkpYIiwiODAwIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 10:10"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 14:20"
+          },
+          "duration": 190,
+          "airplane": "Airbus A350",
+          "airline": "星宇航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+          "travel_class": "Economy",
+          "flight_number": "JX 802",
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 155 kg"
+          ]
+        }
+      ],
+      "total_duration": 190,
+      "carbon_emissions": {
+        "this_flight": 155000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -5
+      },
+      "price": 12338,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/JX.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZLV0Rnd01ob0tDTEpnRUFBYUExUlhSRGdjY05XbkFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkpYIiwiODAyIl1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 15:20"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 19:20"
+          },
+          "duration": 180,
+          "airplane": "Boeing 787-10",
+          "airline": "長榮航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+          "travel_class": "Economy",
+          "flight_number": "BR 196",
+          "ticket_also_sold_by": [
+            "全日空航空"
+          ],
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 140 kg"
+          ]
+        }
+      ],
+      "total_duration": 180,
+      "carbon_emissions": {
+        "this_flight": 141000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -13
+      },
+      "price": 12434,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZDVWpFNU5ob0tDSkpoRUFBYUExUlhSRGdjY1B5cEFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkJSIiwiMTk2Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 08:50"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 12:55"
+          },
+          "duration": 185,
+          "airplane": "Boeing 787-10",
+          "airline": "長榮航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+          "travel_class": "Economy",
+          "flight_number": "BR 198",
+          "ticket_also_sold_by": [
+            "全日空航空"
+          ],
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 140 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 141000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -13
+      },
+      "price": 15083,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZDVWpFNU9Cb0tDT3QxRUFBYUExUlhSRGdjY0xucEFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkJSIiwiMTk4Il1dXQ=="
+    },
+    {
+      "flights": [
+        {
+          "departure_airport": {
+            "name": "臺灣桃園國際機場",
+            "id": "TPE",
+            "time": "2026-12-22 07:55"
+          },
+          "arrival_airport": {
+            "name": "成田國際機場",
+            "id": "NRT",
+            "time": "2026-12-22 12:00"
+          },
+          "duration": 185,
+          "airplane": "Boeing 787-10",
+          "airline": "長榮航空",
+          "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+          "travel_class": "Economy",
+          "flight_number": "BR 184",
+          "ticket_also_sold_by": [
+            "全日空航空"
+          ],
+          "legroom": "79 公分",
+          "extensions": [
+            "Average legroom (79 公分)",
+            "Wi-Fi for a fee",
+            "In-seat power & USB outlets",
+            "On-demand video",
+            "Carbon emissions estimate: 140 kg"
+          ]
+        }
+      ],
+      "total_duration": 185,
+      "carbon_emissions": {
+        "this_flight": 141000,
+        "typical_for_this_route": 163000,
+        "difference_percent": -13
+      },
+      "price": 15902,
+      "type": "One way",
+      "airline_logo": "https://www.gstatic.com/flights/airline_logos/70px/BR.png",
+      "booking_token": "WyJDalJJVmxOZmQySnBVR0p1TFRCQlJFaHFWRkZDUnkwdExTMHRMWFowZDJNeU9DMXVNa0ZCUVVGQlIzSmlUblIzUlZBNFNGTkJFZ1ZDVWpFNE5Cb0tDSjU4RUFBYUExUlhSRGdjY0lyOUFnPT0iLFtbIlRQRSIsIjIwMjYtMTItMjIiLCJOUlQiLG51bGwsIkJSIiwiMTg0Il1dXQ=="
+    }
+  ],
+  "price_insights": {
+    "lowest_price": 4840,
+    "price_level": "typical",
+    "typical_price_range": [
+      3550,
+      5300
+    ],
+    "price_history": [
+      [
+        1787500800,
+        5313
+      ],
+      [
+        1787587200,
+        5313
+      ],
+      [
+        1787673600,
+        5313
+      ],
+      [
+        1787760000,
+        5313
+      ],
+      [
+        1787846400,
+        5313
+      ],
+      [
+        1787932800,
+        5213
+      ],
+      [
+        1788019200,
+        5213
+      ],
+      [
+        1788105600,
+        5213
+      ],
+      [
+        1788192000,
+        5463
+      ],
+      [
+        1788278400,
+        5474
+      ],
+      [
+        1788364800,
+        5474
+      ],
+      [
+        1788451200,
+        5474
+      ],
+      [
+        1788537600,
+        5474
+      ],
+      [
+        1788624000,
+        5474
+      ],
+      [
+        1788710400,
+        5474
+      ],
+      [
+        1788796800,
+        5474
+      ],
+      [
+        1788883200,
+        5474
+      ],
+      [
+        1788969600,
+        5474
+      ],
+      [
+        1789056000,
+        5741
+      ],
+      [
+        1789142400,
+        5741
+      ],
+      [
+        1789228800,
+        5741
+      ],
+      [
+        1789315200,
+        5741
+      ],
+      [
+        1789401600,
+        5630
+      ],
+      [
+        1789488000,
+        4840
+      ],
+      [
+        1789574400,
+        4440
+      ],
+      [
+        1789660800,
+        4040
+      ],
+      [
+        1789747200,
+        4040
+      ],
+      [
+        1789833600,
+        4040
+      ],
+      [
+        1789920000,
+        4040
+      ],
+      [
+        1790006400,
+        4040
+      ],
+      [
+        1790092800,
+        4040
+      ],
+      [
+        1790179200,
+        3640
+      ],
+      [
+        1790265600,
+        3640
+      ],
+      [
+        1790352000,
+        3640
+      ],
+      [
+        1790438400,
+        3640
+      ],
+      [
+        1790524800,
+        3640
+      ],
+      [
+        1790611200,
+        4040
+      ],
+      [
+        1790697600,
+        4440
+      ],
+      [
+        1790784000,
+        4440
+      ],
+      [
+        1790870400,
+        4440
+      ],
+      [
+        1790956800,
+        4765
+      ],
+      [
+        1791043200,
+        4765
+      ],
+      [
+        1791129600,
+        4765
+      ],
+      [
+        1791216000,
+        4765
+      ],
+      [
+        1791302400,
+        4765
+      ],
+      [
+        1791388800,
+        4566
+      ],
+      [
+        1791475200,
+        4765
+      ],
+      [
+        1791561600,
+        4765
+      ],
+      [
+        1791648000,
+        4765
+      ],
+      [
+        1791734400,
+        4765
+      ],
+      [
+        1791820800,
+        4765
+      ],
+      [
+        1791907200,
+        4756
+      ],
+      [
+        1791993600,
+        4756
+      ],
+      [
+        1792080000,
+        5240
+      ],
+      [
+        1792166400,
+        5240
+      ],
+      [
+        1792252800,
+        5240
+      ],
+      [
+        1792339200,
+        5240
+      ],
+      [
+        1792425600,
+        5240
+      ],
+      [
+        1792512000,
+        5240
+      ],
+      [
+        1792598400,
+        5240
+      ],
+      [
+        1792684800,
+        4840
+      ]
+    ]
+  },
+  "airports": [
+    {
+      "departure": [
+        {
+          "airport": {
+            "id": "TPE",
+            "name": "臺灣桃園國際機場"
+          },
+          "city": "臺北市",
+          "country": "台灣",
+          "country_code": "TW",
+          "image": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcS2MmLbW-HcXlTwmod5sPj7skSX-bye9dnRXjaDxShX4zk8o66Ef213qGriwZt3zahLCL9v7wFHklhKEg",
+          "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcQMST5lzBTm3sd5w5tOO4YZFWdFgSntIVWqaCH97zNh9_Lx42rE-SexpiflhCSwJtBjNpUWo4f_uIhEu4ul5r4B5UgJCxOuDlKIRPgULbo"
+        }
+      ],
+      "arrival": [
+        {
+          "airport": {
+            "id": "NRT",
+            "name": "成田國際機場"
+          },
+          "city": "東京都",
+          "country": "日本",
+          "country_code": "JP",
+          "image": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcTqHkzEeI2bSglPzmSGZL7bxXmn0wJgOn2ZtEN8I47uBnzY1CnHzGtD-YseJXqyexcAcw_uJp-D5HTkCg",
+          "thumbnail": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcRLnIToEgwiM_jV3cbw5eQZoUAIg6XqdrJAiClDyyg0w-JBSRN5ZeOT-iFb3SvwkwP1uoBCmT-gKE5VcyCYf-xq4guL4NAFICSaNyOnYOA"
+        }
+      ]
+    }
+  ]
+}
