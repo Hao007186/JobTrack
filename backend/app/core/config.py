@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Neon 主控台複製出來的連線字串沒有指定 driver，SQLAlchemy 預設會找 psycopg2
@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     # 本機用 http 開發時在 .env 設 false，否則瀏覽器不會送出 cookie
     cookie_secure: bool = True
 
+    # 本機開發預設用 mock，不會花到 SerpApi 額度
+    price_provider: Literal["mock", "serpapi"] = "mock"
+    serpapi_key: SecretStr | None = None
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, v: str) -> str:
@@ -29,6 +33,12 @@ class Settings(BaseSettings):
             if v.startswith(prefix):
                 return _PSYCOPG_PREFIX + v.removeprefix(prefix)
         return v
+
+    @model_validator(mode="after")
+    def _serpapi_needs_key(self) -> Self:
+        if self.price_provider == "serpapi" and self.serpapi_key is None:
+            raise ValueError("PRICE_PROVIDER=serpapi 時必須設定 SERPAPI_KEY")
+        return self
 
 
 @lru_cache
