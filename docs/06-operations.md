@@ -18,6 +18,7 @@
 | 狀況 | 處理方式 |
 |---|---|
 | SerpApi 額度用完 | 自動暫停查價並發系統通知，下個月 1 號恢復；檢查用量紀錄是否有異常重試 |
+| SerpApi key 外洩（出現在 log、Git 或被盜用） | 到 SerpApi 網站重新產生 key（舊的立即失效）→ 更新 SSM Parameter Store（正式）或 `backend/.env`（本機）→ 重新部署；搜尋 CloudWatch log 確認是否還有含 key 的紀錄 |
 | SerpApi 停止服務或長期無法使用 | 查價暫停，發系統通知；透過 `PriceProvider` 介面換接其他供應商（例如 Duffel adapter） |
 | LINE 推播失敗或額度用完 | 改由 Email 送達；DLQ 告警後人工檢查 |
 | SES 正式權限被拒或帳號被暫停 | `EmailSender` 切換到 Gmail SMTP 備案；檢查退信／投訴原因後重新申請 |
