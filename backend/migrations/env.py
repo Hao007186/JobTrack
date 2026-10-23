@@ -15,6 +15,7 @@ from app.db.session import CONNECT_ARGS
 from app.modules.auth import models as auth_models  # noqa: F401
 from app.modules.reference import models as reference_models  # noqa: F401
 from app.modules.users import models as users_models  # noqa: F401
+from app.modules.watches import models as watches_models  # noqa: F401
 
 config = context.config
 
