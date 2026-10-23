@@ -40,22 +40,33 @@ def build_params(cond: QueryConditions) -> dict[str, str]:
     return params
 
 
+def _is_price(value: Any) -> bool:
+    # bool 也是 int 的子類別，要排除；價格必須 > 0（資料表有 check constraint）
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
 def _airline_of(option: dict[str, Any]) -> str | None:
     legs = option.get("flights") or []
-    number = legs[0].get("flight_number") if legs else None
+    number = legs[0].get("flight_number") if legs and isinstance(legs[0], dict) else None
     if not isinstance(number, str) or " " not in number:
         return None
-    return number.split(" ", 1)[0]
+    code = number.split(" ", 1)[0]
+    # IATA 航空公司代碼固定 2 碼（資料表欄位是 String(2)）
+    return code if len(code) == 2 else None
 
 
 def _insights(raw: Any) -> Insights | None:
     if not isinstance(raw, dict):
         return None
     typical = raw.get("typical_price_range")
-    if not isinstance(typical, list) or len(typical) != 2:
+    if not isinstance(typical, list) or len(typical) != 2 or not all(map(_is_price, typical)):
         return None
     history = raw.get("price_history") or []
-    prices = [point[1] for point in history if isinstance(point, list) and len(point) == 2]
+    prices = [
+        point[1]
+        for point in history
+        if isinstance(point, list) and len(point) == 2 and _is_price(point[1])
+    ]
     return Insights(
         typical_low=int(typical[0]),
         typical_high=int(typical[1]),
@@ -64,6 +75,14 @@ def _insights(raw: Any) -> Insights | None:
 
 
 def parse_search(payload: dict[str, Any]) -> SearchResult:
+    try:
+        return _parse(payload)
+    except (TypeError, AttributeError, KeyError, ValueError) as e:
+        # 格式不對時當成這次查價失敗，不要讓整次每日查價中斷
+        raise ProviderError(f"SerpApi 回應格式不正確：{type(e).__name__}") from None
+
+
+def _parse(payload: dict[str, Any]) -> SearchResult:
     error = payload.get("error")
     if error:
         if any(marker in str(error) for marker in NO_RESULTS_MARKERS):
@@ -71,7 +90,7 @@ def parse_search(payload: dict[str, Any]) -> SearchResult:
         raise ProviderError(f"SerpApi 回傳錯誤：{error}")
 
     options = (payload.get("best_flights") or []) + (payload.get("other_flights") or [])
-    priced = [o for o in options if isinstance(o.get("price"), int)]
+    priced = [o for o in options if isinstance(o, dict) and _is_price(o.get("price"))]
     lowest = None
     if priced:
         best = min(priced, key=lambda o: o["price"])

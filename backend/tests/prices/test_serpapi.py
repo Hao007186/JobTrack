@@ -218,3 +218,45 @@ async def test_get_provider_serpapi() -> None:
     )
     async with httpx.AsyncClient() as client:
         assert isinstance(get_provider(settings, client), SerpApiProvider)
+
+
+async def test_parse_malformed_values_are_ignored() -> None:
+    payload = load("round_trip")
+    payload["price_insights"]["typical_price_range"] = [None, 5000]
+    assert parse_search(payload).insights is None
+
+    payload = load("round_trip")
+    payload["price_insights"]["price_history"].append([1787241600, None])
+    payload["best_flights"].insert(0, "not-an-option")
+    result = parse_search(payload)
+    assert result.lowest is not None and result.lowest.price == 10372
+    assert result.insights is not None and result.insights.history_low == 8637
+
+
+async def test_parse_unexpected_structure_is_provider_error() -> None:
+    payload = load("round_trip")
+    payload["best_flights"] = "oops"
+    with pytest.raises(ProviderError):
+        parse_search(payload)
+
+
+async def test_search_malformed_response_is_provider_error() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"best_flights": "oops", "other_flights": []})
+
+    with pytest.raises(ProviderError):
+        await provider_with(handler).search(conditions())
+
+
+async def test_parse_rejects_values_the_db_would_refuse() -> None:
+    payload = load("round_trip")
+    cheapest = payload["best_flights"][0]
+    cheapest["flights"][0]["flight_number"] = "ABC 123"
+    result = parse_search(payload)
+    assert result.lowest is not None
+    assert (result.lowest.price, result.lowest.airline_iata) == (10372, None)
+
+    payload = load("round_trip")
+    payload["best_flights"][0]["price"] = 0
+    result = parse_search(payload)
+    assert result.lowest is not None and result.lowest.price > 0
