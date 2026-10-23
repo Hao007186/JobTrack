@@ -78,8 +78,15 @@ async def validate_conditions(session: AsyncSession, cond: QueryConditions, toda
             raise InvalidWatchInput("airlines：包含不支援的航空公司")
 
 
+async def _catch_up(session: AsyncSession, today: date) -> None:
+    # 跨日後可能有 query 進入出發前 2 天而不再佔名額，但還沒有操作觸發補位；
+    # 先讓排隊中的人補上，新來的才不會插隊
+    await slots.rebalance(session, today)
+
+
 async def create_watch(session: AsyncSession, user: User, data: WatchCreate, today: date) -> Watch:
     await slots.acquire_watch_lock(session)
+    await _catch_up(session, today)
     if await slots.count_user_slots(session, user.id) >= slots.MAX_WATCHES_PER_USER:
         raise WatchLimitReached
     cond = QueryConditions(
@@ -148,6 +155,7 @@ async def update_watch(
     session: AsyncSession, user: User, public_id: uuid.UUID, data: WatchUpdate, today: date
 ) -> Watch:
     await slots.acquire_watch_lock(session)
+    await _catch_up(session, today)
     watch = await get_watch(session, user, public_id)
     if watch.status == "expired":
         raise WatchExpired

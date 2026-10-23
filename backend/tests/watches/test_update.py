@@ -201,3 +201,14 @@ async def test_demo_cannot_update(client: AsyncClient, db_session: AsyncSession)
     watch = await insert_watch(db_session, owner)
     headers = await demo_headers(client, db_session)
     assert (await _patch(client, headers, watch, target_price=8000)).status_code == 403
+
+
+async def test_resume_does_not_jump_queue(client: AsyncClient, db_session: AsyncSession) -> None:
+    await fill_slots(db_session, 7)
+    other = await create_user(db_session, email="early@example.com")
+    waiting = await insert_watch(db_session, other, status="queued", destination="PUS")
+    headers = await auth_headers(client, db_session)
+    watch = await insert_watch(db_session, await _alice(db_session), status="paused")
+
+    assert (await _patch(client, headers, watch, status="active")).json()["status"] == "queued"
+    assert (await _reload(db_session, waiting)).status == "active"

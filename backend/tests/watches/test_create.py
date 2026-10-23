@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.modules.users.models import User
 from app.modules.watches.models import Watch
 from app.modules.watches.slots import count_user_slots, occupied_query_ids
+from tests.conftest import create_user
 from tests.watches.conftest import (
     TODAY,
     auth_headers,
@@ -179,3 +180,18 @@ async def test_demo_cannot_create(client: AsyncClient, db_session: AsyncSession)
 
 async def test_requires_login(client: AsyncClient) -> None:
     assert (await client.post(URL, json=body())).status_code == 401
+
+
+async def test_freed_slot_goes_to_earlier_queue(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    # 跨日後某個 query 的出發日進入 2 天內、不再佔名額，但還沒有任何操作觸發補位
+    await fill_slots(db_session, 7)
+    early = await create_user(db_session, email="early@example.com")
+    waiting = await insert_watch(db_session, early, status="queued", destination="PUS")
+    headers = await auth_headers(client, db_session)
+
+    resp = await client.post(URL, json=body(destination="GMP"), headers=headers)
+    assert resp.json()["status"] == "queued"
+    await db_session.refresh(waiting)
+    assert waiting.status == "active"
