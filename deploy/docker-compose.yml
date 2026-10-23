@@ -25,6 +25,7 @@ services:
       - >-
         export DATABASE_URL="postgresql+psycopg://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@postgres:5432/$${POSTGRES_DB}"
         && python -m alembic upgrade head
+        && python -m app.seeds.reference
         && python -m app.seeds.demo
         && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     working_dir: /var/task
