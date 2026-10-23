@@ -49,3 +49,27 @@ def test_auth_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.access_token_minutes == 15
     assert s.refresh_token_days == 7
     assert s.cookie_secure is True
+
+
+def test_price_provider_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.delenv("PRICE_PROVIDER", raising=False)
+    monkeypatch.delenv("SERPAPI_KEY", raising=False)
+    s = Settings(_env_file=None)
+    assert s.price_provider == "mock"
+    assert s.serpapi_key is None
+
+
+def test_serpapi_requires_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("PRICE_PROVIDER", "serpapi")
+    monkeypatch.delenv("SERPAPI_KEY", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+    monkeypatch.setenv("SERPAPI_KEY", "secret-serpapi-key")
+    s = Settings(_env_file=None)
+    assert s.serpapi_key is not None
+    assert s.serpapi_key.get_secret_value() == "secret-serpapi-key"
+    assert "secret-serpapi-key" not in str(s)
+    assert "secret-serpapi-key" not in repr(s)

@@ -40,7 +40,7 @@ EventBridge Scheduler（每天）──► Lambda: price-checker
 EventBridge Scheduler（每天）──► Lambda: price-checker（維護模式）
      - 出發日已過的 watch 標記為 expired
      - 標記過期後補位（平時名額空出時已經立刻補位）
-     - 超過保留期限的 price_snapshots 彙總成每日最低價後刪除
+     - 超過保留期限的 price_snapshots 彙總成每日最低價後刪除（延後，資料量需要時再做）
 SQS ──► Lambda: notifier ──► 站內通知（notifications）+ Email（SES）+ LINE Messaging API（有綁定才發）
         （每個管道各自記錄狀態；失敗由 SQS 重試，最後進 DLQ）
 
@@ -53,12 +53,13 @@ CloudWatch：錯誤、DLQ 堆積、額度、SES 退信率 → SNS 寄 Email 告�
 
 ### 額度策略
 - **只用 SerpApi**，每月 250 次為硬上限。原本規劃用 Travelpayouts 當雷達，M0 實測後不採用（見[總覽〈M0 實驗決策紀錄〉](architecture.md#m0-實驗決策紀錄2026-10-10)）。
-- **每天排程一次，輪流查價**：每次執行時計算 `本月剩餘額度 ÷ 本月剩餘天數 = 今日預算`，從最久沒查的 query 開始查，查到預算用完為止。
+- **每天排程一次，輪流查價**：每次執行先向 SerpApi 查剩餘次數（`/account.json`，不花額度），今日預算 = `ceil(剩餘次數 ÷ 本月剩餘天數（含今天）)`，從最久沒查的 query 開始查，查到預算用完為止。無條件進位讓月底剩少量額度時仍能每天查，預算也永遠不超過剩餘次數。
+- **防止重複查價**：每個 query 查價前先用條件式更新「搶下」（台灣時間今天還沒查過才搶得到），每個 query 各自 commit；失敗時還原 `last_checked_at`，明天優先重查；連續 3 次失敗就停止。排程重試或兩個程式同時跑都不會重複花額度。
 - **一次查價只花 1 次呼叫**：來回票的第一次回應就包含來回總價和 `price_insights`，不再用 `departure_token` 查回程；訂票連結使用回應中的 Google Flights 網址，不花額度換 `booking_token`。2026-10-20 已用真實回應確認（見[總覽〈M0 SerpApi 實驗紀錄〉](architecture.md#m0-serpapi-實驗紀錄2026-10-20)）。
 - **用量估算**：250 次／月約等於每天 8 次，所以每個 query 大約每「active query 數 ÷ 8」天查到一次。全站上限訂為 **8 個** active price_query，讓每個 query 每天都查得到；放寬到 20 個的話會變成約 2.5 天一次。
 - **額度用完**：暫停查價到下個月 1 號，並發一則系統通知。動態預算正常運作時額度不會提前用完，發生時要檢查是否有異常重試。
 - 相同條件的追蹤合併成同一個 price_query，額度只花一次。
-- 用量記錄在 `api_usage`；供應商用 `PriceProvider` 介面（adapter pattern）抽象化，v1 有 mock 和 SerpApi 兩個實作。
+- 用量記錄在 `api_usage`（僅供紀錄，預算以 SerpApi 回報的剩餘次數為準）；供應商用 `PriceProvider` 介面（adapter pattern）抽象化，v1 有 mock 和 SerpApi 兩個實作。
 
 ### 價格基準
 比較的一律是**同一個 price_query（同一個出發日期）**的價格，不跨日期平均。
@@ -286,11 +287,11 @@ erDiagram
 - `line_accounts`(user_id PK/FK, line_user_id UQ, display_name, is_friend, linked_at)
 - `notification_settings`(user_id, email_enabled, line_enabled)
 - `airports`(iata PK, name_zh, city_zh, country)、`airlines`(iata PK, name_zh)：精選清單，資料放在 `backend/app/seeds/data/*.csv`
-- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines（排序後的 IATA 陣列，空 = 全部）, is_demo, last_checked_at（M1 #4 加入）)：查價條件只存在這裡；`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
+- `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines（排序後的 IATA 陣列，空 = 全部）, is_demo, last_checked_at)：查價條件只存在這裡；`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
 - `watches`(id, public_id, user_id, **price_query_id FK**, **target_price NOT NULL**, **status**(active/queued/paused/expired), timestamps)：不重複存查價條件；單程／來回由 `return_date` 判斷，v1 一律 TWD
-- `price_snapshots`(id, price_query_id, provider, price, currency, airline_iata, stops, booking_url, observed_at)：只新增不修改
-- `price_daily_lows`(price_query_id, date, provider, min_price, currency)，PK(price_query_id, date, provider)：超過保留期限的 snapshots 彙總到這裡
-- `price_baselines`(price_query_id PK, typical_low, typical_high, record_low, sample_count, source, updated_at)
+- `price_snapshots`(id, price_query_id, provider, price, airline_iata, stops, booking_url, observed_at)：只新增不修改；價格一律 TWD
+- `price_daily_lows`(price_query_id, date, provider, min_price, currency)，PK(price_query_id, date, provider)：超過保留期限的 snapshots 彙總到這裡（延後，資料量需要時再做）
+- `price_baselines`(price_query_id PK, typical_low, typical_high, record_low, history_seeded, sample_count, updated_at)：`history_seeded` 表示歷史最低已用 Google 的 `price_history` 打底
 - `watch_alert_states`(watch_id PK, below_target, below_typical, last_notified_price, last_notified_at)
 - `alerts`(id, watch_id, snapshot_id, reason, price, created_at, UQ(watch_id, snapshot_id))：價格警示的業務紀錄；`price` 自帶一份，snapshot 因保留期限被刪除時 `snapshot_id` 設為 NULL
 - `notifications`(id, user_id, type(price_alert/system), title, body, link, alert_id NULL, is_read, created_at)：站內通知中心

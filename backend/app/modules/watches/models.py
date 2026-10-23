@@ -48,6 +48,8 @@ class PriceQuery(Base):
     airlines: Mapped[list[str]] = mapped_column(ARRAY(String(2)), server_default="{}")
     is_demo: Mapped[bool] = mapped_column(server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # NULL = 從沒查過；決定每日查價的順序
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Watch(Base):
