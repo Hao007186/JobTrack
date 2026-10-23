@@ -32,3 +32,20 @@ def test_invalid_env_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ENV", "staging")
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+def test_missing_jwt_secret_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.delenv("JWT_SECRET", raising=False)
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None)
+
+
+def test_auth_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    for name in ("ACCESS_TOKEN_MINUTES", "REFRESH_TOKEN_DAYS", "COOKIE_SECURE"):
+        monkeypatch.delenv(name, raising=False)
+    s = Settings(_env_file=None)
+    assert s.access_token_minutes == 15
+    assert s.refresh_token_days == 7
+    assert s.cookie_secure is True

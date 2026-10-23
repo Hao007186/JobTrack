@@ -16,6 +16,7 @@ TEST_DATABASE_URL = os.environ.get(
     "postgresql+psycopg://farewatch:farewatch@localhost:5432/farewatch_test",
 )
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL
+os.environ.setdefault("JWT_SECRET", "test-secret-0123456789abcdef0123456789")
 
 from httpx import ASGITransport, AsyncClient  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, create_async_engine  # noqa: E402
