@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from dataclasses import replace
 from datetime import date, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.reference.models import ORIGIN_COUNTRY, Airline, Airport
@@ -191,3 +191,19 @@ async def delete_watch(
     await session.flush()
     await slots.rebalance(session, today)
     await session.commit()
+
+
+async def expire_watches(session: AsyncSession, today: date) -> tuple[int, int]:
+    """每日維護：出發日已過的追蹤標成 expired 再補位。回傳（過期數、啟用數）。"""
+    await slots.acquire_watch_lock(session)
+    past_queries = select(PriceQuery.id).where(PriceQuery.depart_date < today)
+    expired = await session.scalars(
+        update(Watch)
+        .where(Watch.status != "expired", Watch.price_query_id.in_(past_queries))
+        .values(status="expired")
+        .returning(Watch.id)
+    )
+    expired_count = len(expired.all())
+    activated = await slots.rebalance(session, today)
+    await session.commit()
+    return expired_count, activated

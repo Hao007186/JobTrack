@@ -8,6 +8,7 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import app.db.models  # noqa: F401  獨立執行時也要註冊所有表
 from app.db.session import get_sessionmaker
 from app.modules.reference.models import Airline, Airport
 
