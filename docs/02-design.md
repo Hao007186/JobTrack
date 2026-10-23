@@ -12,7 +12,7 @@
 | 容器 | 同一份 backend Dockerfile（AWS Lambda Python 基底）建出**單一架構** image：arm64 推到 **ECR** 給 Lambda，amd64 只在本機和 CI 建給 kind 用；frontend 用 Nginx image（只給 k8s 用） | Lambda 不接受 multi-arch manifest，build 時要加 `--provenance=false`；見下方〈容器執行方式〉 |
 | k8s | **本機 kind + CI 驗證**，用 Helm chart 部署 | 單人維護正式環境的 k8s 成本高；用來學習和展示 |
 | 網域／DNS | 自有網域，DNS 放 **Cloudflare**（免費） | Route 53 每月 US$0.50；Terraform 有 Cloudflare provider |
-| Email | **SES**（驗證網域 + DKIM／SPF／DMARC）；Gmail SMTP 當備案 | 用 `EmailSender` 介面抽象化，切換只改設定 |
+| Email | **SES**（驗證網域 + DKIM／SPF／DMARC）或 **Gmail SMTP**，M1 #5 決定 | 用 `EmailSender` 介面抽象化，切換只改設定 |
 | IaC | Terraform（state 存 S3） | 一鍵建立／刪除所有資源 |
 
 ## 容器執行方式
@@ -163,8 +163,8 @@ stateDiagram-v2
 - 沒有任何 `active` watch 的 price_query 不再查價，但保留價格歷史。
 
 ## 帳號與驗證設計
-- v1：註冊、登入、Argon2、JWT access token（15 分鐘）+ refresh token（7 天，HttpOnly + `Secure` + `SameSite=Strict` Cookie，存 DB，可撤銷）、登出、連續失敗鎖定
-- **Email 驗證（v1）**：註冊後寄驗證信，連結 24 小時有效、只能用一次；未驗證的帳號可以登入和瀏覽，但不能新增追蹤，也不會收到價格通知 Email；重寄驗證信有頻率限制
+- v1：註冊、登入、Argon2、JWT access token（15 分鐘）+ refresh token（7 天，HttpOnly + `Secure` + `SameSite=Strict` Cookie，存 DB，可撤銷）、登出、連續失敗 5 次鎖 15 分鐘
+- **不做 Email 驗證**（2026-10-23 決定，見[總覽〈2026-10-23 決策紀錄〉](architecture.md#2026-10-23-決策紀錄)）：註冊後直接登入
 - **示範帳號**：`POST /auth/demo` 直接取得示範帳號的 session；除了登出和 refresh 以外，所有寫入 API 對示範帳號回 403；資料由 seed 腳本預先建立（多個追蹤 + 價格歷史 + 通知），不會被 checker 查價
 - LINE 綁定：`GET /me/line/link` → LINE 授權頁（`bot_prompt=aggressive` 引導加好友）→ callback 驗證 `state`（使用者 + 一次性 nonce）→ 寫入 `line_accounts`
   - LINE Login channel 和 Messaging API channel **必須建在同一個 Provider 底下**，兩邊的 `userId` 才會一致
@@ -179,18 +179,11 @@ sequenceDiagram
     participant FE as 前端
     participant API as api Lambda
     participant DB as Neon
-    participant SES as SES
     participant LINE as LINE Platform
 
     U->>FE: 填寫 Email 和密碼
     FE->>API: POST /auth/register
-    API->>DB: 建立 users 和 email_verifications
-    API->>SES: 寄驗證信
-    U->>FE: 點信中的驗證連結
-    FE->>API: POST /auth/verify-email
-    API->>DB: 寫入 email_verified_at
-    U->>FE: 登入
-    FE->>API: POST /auth/login
+    API->>DB: 建立 users 和 refresh_tokens
     API-->>FE: access token 和 refresh cookie
 
     Note over U,LINE: 以下為 M2 的 LINE 綁定
@@ -211,7 +204,6 @@ sequenceDiagram
 ```mermaid
 erDiagram
     users ||--o{ refresh_tokens : has
-    users ||--o{ email_verifications : has
     users ||--o| line_accounts : links
     users ||--|| notification_settings : has
     users ||--o{ watches : owns
@@ -233,10 +225,6 @@ erDiagram
         string email UK
     }
     refresh_tokens {
-        int id PK
-        int user_id FK
-    }
-    email_verifications {
         int id PK
         int user_id FK
     }
@@ -296,9 +284,8 @@ erDiagram
     }
 ```
 
-- `users`(id, public_id, email UQ, password_hash, display_name, role, is_demo, is_active, failed_login_count, locked_until, email_verified_at NULL, timestamps)
+- `users`(id, public_id, email UQ, password_hash, display_name, role, is_demo, is_active, failed_login_count, locked_until, timestamps)
 - `refresh_tokens`(id, user_id, token_hash, expires_at, revoked_at)
-- `email_verifications`(id, user_id, token_hash, expires_at, used_at)
 - `line_accounts`(user_id PK/FK, line_user_id UQ, display_name, is_friend, linked_at)
 - `notification_settings`(user_id, email_enabled, line_enabled)
 - `airports`(iata PK, name_zh, city, country)、`airlines`(iata PK, name_zh)
@@ -314,7 +301,7 @@ erDiagram
 - `api_usage`(provider, month, count)
 
 ## API 草案（/api/v1，FastAPI 自動產生 OpenAPI 文件）
-- Auth：`POST /auth/register|verify-email|resend-verification|login|refresh|logout|demo`、`GET /me`
+- Auth：`POST /auth/register|login|refresh|logout|demo`、`GET /me`
 - LINE：`GET /me/line/link`、`GET /auth/line/callback`、`GET/DELETE /me/line`、`POST /line/webhook`
 - Watches：`GET/POST /watches`（`?status=` 篩選）、`GET/PATCH/DELETE /watches/{id}`、`GET /watches/{id}/prices?range=`、`GET /watches/{id}/baseline`
 - 通知：`GET /notifications`、`PATCH /notifications/{id}/read`、`POST /notifications/read-all`、`GET/PATCH /me/notification-settings`

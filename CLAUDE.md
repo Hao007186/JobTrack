@@ -4,7 +4,7 @@
 產品名稱是 **FareWatch**，repo 資料夾名稱是 `Project_TicketTrack`，兩者指同一個專案。
 
 ## 目前狀態
-- **M0 前置驗證**進行中：只有 `experiments/m0/` 的小實驗腳本，正式的 backend／frontend 程式碼從 M1 才開始寫
+- **M1 MVP** 進行中：拆成 7 個子專案，spec／plan 在 `docs/superpowers/`；backend 在 `backend/`，`experiments/m0/` 是 M0 的實驗腳本
 - 架構文件是草稿第 3 版：`docs/architecture.md` 是總覽，`docs/01-requirements.md` ~ `docs/06-operations.md` 是 SDLC 6 個階段
 
 ## 何時讀哪份文件

@@ -18,7 +18,7 @@ Project_TicketTrack/
 ```
 
 ## 開發規範
-- **分支策略：** GitHub Flow。`main` 隨時可部署；功能分支 `feat/*`、`fix/*` → PR → CI 全綠才能 merge（設定 branch protection）
+- **分支策略：** GitHub Flow。`main` 隨時可部署；功能分支 `feat/*`、`fix/*` → PR → CI 全綠才能 merge（branch protection：需 PR、0 approvals、CI 的 `backend` 與 `docker-build` 必須通過）
 - **Commit 格式：** Conventional Commits（`feat:`、`fix:`、`docs:`…），方便自動產生 CHANGELOG
 - **程式碼品質：** 後端 ruff + mypy，前端 eslint + prettier；pre-commit hook 在本機先檢查
 - **設定管理：** 12-Factor，所有設定走環境變數；`.env.example` 進 Git，`.env` 不進 Git
@@ -29,11 +29,11 @@ Project_TicketTrack/
 **M0：前置驗證**
 - 小實驗（**已完成，2026-10-10**）：拿 5 條台灣出發的航線實際呼叫 Travelpayouts。結果覆蓋率太差，決定不採用、只用 SerpApi，見[總覽〈M0 實驗決策紀錄〉](architecture.md#m0-實驗決策紀錄2026-10-10)。腳本保留在 `experiments/m0/`
 - SerpApi 小實驗（**已完成，2026-10-20**）：確認來回票一次呼叫就能拿到總價和 `price_insights`，見[總覽〈M0 SerpApi 實驗紀錄〉](architecture.md#m0-serpapi-實驗紀錄2026-10-20)
-- 購買網域、Cloudflare 設定 DNS、申請 SES 正式使用權限（審核需要時間，提早送出）
+- 購買網域、Cloudflare 設定 DNS（寄信服務改到 M1 #5 決定，見[總覽〈2026-10-23 決策紀錄〉](architecture.md#2026-10-23-決策紀錄)）
 
 **M1：MVP 上線**
 1. 骨架 + docker-compose + CI（ci.yml）
-2. 帳號系統（含 Email 驗證）+ 示範帳號（US-01、US-11）
+2. 帳號系統 + 示範帳號（US-01、US-11）
 3. 機場／航空公司資料 + 追蹤 CRUD + 生命週期（US-02、US-03）
 4. PriceProvider：mock → SerpApi；checker、查詢合併、額度預算與輪流查價（US-10）
 5. 價格基準 + 觸發規則 + alerts + notifications + notifier（站內、Email）（US-04、US-06、US-09）
