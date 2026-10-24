@@ -13,7 +13,7 @@
 
 ## 一次性手動設定（寫進部署文件）
 - 購買網域，將 DNS 交給 Cloudflare 管理
-- 申請 SES 正式使用權限（說明用途、退信與投訴處理方式）
+- 在 Resend 驗證網域（DNS 記錄加到 Cloudflare，設為 DNS only），建立 API key 放進 SSM
 - 建立 LINE Provider，並在其下建立 Login channel 和 Messaging API channel
 - 建立 Terraform state 用的 S3 bucket（避免雞生蛋問題，不由 Terraform 自己建立）
 
@@ -31,7 +31,7 @@
 ## 成本控管
 - **網域**：約 US$10／年（唯一固定支出）
 - **AWS 免費方案期間**（新帳號最多 6 個月）：費用由抵用金支付，信用卡不會被扣款。**到期或抵用金用完之前必須升級成付費方案，否則帳號會被關閉**
-- **之後**：ECR、S3、SES 每月幾分錢，其他都在永久免費額度內
+- **之後**：ECR、S3 每月幾分錢，其他都在永久免費額度內；Email 用 Resend 免費方案
 
 | 會產生費用的項目 | 怎麼避免 |
 |---|---|

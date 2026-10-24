@@ -12,7 +12,7 @@
 | 容器 | 同一份 backend Dockerfile（AWS Lambda Python 基底）建出**單一架構** image：arm64 推到 **ECR** 給 Lambda，amd64 只在本機和 CI 建給 kind 用；frontend 用 Nginx image（只給 k8s 用） | Lambda 不接受 multi-arch manifest，build 時要加 `--provenance=false`；見下方〈容器執行方式〉 |
 | k8s | **本機 kind + CI 驗證**，用 Helm chart 部署 | 單人維護正式環境的 k8s 成本高；用來學習和展示 |
 | 網域／DNS | 自有網域，DNS 放 **Cloudflare**（免費） | Route 53 每月 US$0.50；Terraform 有 Cloudflare provider |
-| Email | **SES**（驗證網域 + DKIM／SPF／DMARC）或 **Gmail SMTP**，M1 #5 決定 | 用 `EmailSender` 介面抽象化，切換只改設定 |
+| Email | **SMTP**，寄信服務用 **Resend**（驗證自有網域 + DKIM／SPF）；本機預設 console 寄信器（只印 log） | 用 `EmailSender` 介面抽象化；Resend、Gmail、SES 都支援 SMTP，切換只改設定，也不依賴 AWS 帳號 |
 | IaC | Terraform（state 存 S3） | 一鍵建立／刪除所有資源 |
 
 ## 容器執行方式
@@ -36,17 +36,19 @@ EventBridge Scheduler（每天）──► Lambda: price-checker
      1. 取出需要查價的 price_queries（有啟用中的 watch、非示範資料、出發日 > 今天 + 2 天）
      2. 計算今日預算，從最久沒查的 query 開始呼叫 SerpApi
         → 寫入 price_snapshots 並更新 price_baselines
-     3. 套用觸發規則 → 狀態變化才寫入 alerts，送到 SQS
+     3. 套用觸發規則 → 需要通知時，在同一個 transaction 寫入 alerts、站內通知（notifications）
+        與待寄紀錄（alert_deliveries，pending），再叫醒 notifier（SQS）
+     4. 額度用完 → 暫停查價，對受影響的使用者發系統通知（每人每月一次）
 EventBridge Scheduler（每天）──► Lambda: price-checker（維護模式）
      - 出發日已過的 watch 標記為 expired
      - 標記過期後補位（平時名額空出時已經立刻補位）
      - 超過保留期限的 price_snapshots 彙總成每日最低價後刪除（延後，資料量需要時再做）
-SQS ──► Lambda: notifier ──► 站內通知（notifications）+ Email（SES）+ LINE Messaging API（有綁定才發）
-        （每個管道各自記錄狀態；失敗由 SQS 重試，最後進 DLQ）
+SQS ──► Lambda: notifier ──► 取出 pending 的 alert_deliveries ──► Email（SMTP，Resend）+ LINE Messaging API（M2，有綁定才發）
+        （DB 是寄件匣：每封信各自記錄狀態與嘗試次數，失敗 5 次標為 failed；SQS 只負責叫醒）
 
 所有 Lambda ──► Neon PostgreSQL（新加坡區，pooler），Lambda 不放進 VPC，用 TLS 連線
 機密資料 ──► SSM Parameter Store 標準版（含 X-Origin-Verify 密鑰）
-CloudWatch：錯誤、DLQ 堆積、額度、SES 退信率 → SNS 寄 Email 告警
+CloudWatch：錯誤、DLQ 堆積、額度、寄送失敗的通知信 → SNS 寄 Email 告警
 ```
 
 ## 核心邏輯設計
@@ -78,15 +80,17 @@ CloudWatch：錯誤、DLQ 堆積、額度、SES 退信率 → SNS 寄 Email 告�
 |---|---|
 | `below_target` | 價格**從高於變成 ≤ 目標價**（狀態變化） |
 | `below_typical` | 價格**從典型區間內變成低於典型區間下緣**（狀態變化） |
-| `record_low` | 價格低於歷史最低價（需有足夠樣本） |
+| `record_low` | 價格低於歷史最低價（需有足夠樣本；跟這筆價格併入之前的歷史最低比較） |
 
 - **初始狀態**：新追蹤的 `below_target`、`below_typical` 都是 false（視為「高於」），所以第一次確認的價格若已符合條件，會通知 1 次。
 - **有狀態變化就通知**：`below_target` 或 `below_typical` 由 false 變成 true 時，一定通知。
 - **沒有狀態變化時套用 5% 門檻**：持續低於目標價或典型區間，或只是創下歷史新低時，要**比上次通知的價格（`last_notified_price`）再降 ≥5%** 才再通知。三種原因共用這個門檻，所以連續小幅創新低不會每次都通知。watch 從未通知過時，`record_low` 直接通知。
 - **一筆價格只產生一則 alert**：同時符合多個原因時合併成一則，`alerts.reason` 記主要原因（優先順序 `below_target` > `record_low` > `below_typical`），其餘原因寫在通知內文。
 - 價格回到目標價以上 → `below_target` 重置；回到典型區間內 → `below_typical` 重置。之後再跌破，視為新的一次。
-- 每個 watch 的狀態記錄在 `watch_alert_states`。
-- 冪等：`alerts` 唯一鍵（watch_id + snapshot_id）+ `alert_deliveries` UQ(alert_id, channel)，SQS 重送不會重複發送。
+- 每個 watch 的狀態記錄在 `watch_alert_states`；沒有資料 = 初始狀態，重置就是刪掉那筆。
+- 只對 `active` 的追蹤判斷；查不到航班時不判斷。
+- 冪等：`alerts` 唯一鍵（watch_id + snapshot_id）+ `alert_deliveries` UQ(alert_id, channel)，重送不會重複發送；notifier 用 `FOR UPDATE SKIP LOCKED` 取信，兩個同時跑也不會寄兩次。
+- 系統通知（追蹤從排隊中啟用、額度用完）只發站內通知，不寄 Email。
 - 收到 LINE unfollow 事件 → 停止 LINE 推播，並產生一則系統通知。
 
 **通知狀態機（`watch_alert_states.below_target`）：** `below_typical` 的形狀相同，把「目標價」換成「典型區間下緣」即可。
@@ -111,7 +115,7 @@ sequenceDiagram
     participant SA as SerpApi
     participant Q as SQS
     participant N as notifier
-    participant CH as SES / LINE
+    participant CH as Email（Resend）/ LINE
 
     EB->>C: 每天觸發
     C->>DB: 取出需要查價的 price_queries，計算今日預算
@@ -120,17 +124,18 @@ sequenceDiagram
         C->>DB: 寫入 price_snapshots，更新 price_baselines 和 api_usage
         C->>C: 套用觸發規則
         opt 需要通知
-            C->>DB: 寫入 alerts，更新 watch_alert_states
-            C->>Q: 送出 alert
+            C->>DB: 同一個 transaction 寫入 alerts、notifications、pending 的 alert_deliveries，更新 watch_alert_states
         end
     end
     opt 本月額度已用完
         C->>DB: 暫停查價，產生系統通知
     end
+    C->>Q: 叫醒 notifier
     Q->>N: 觸發
-    N->>DB: 寫入 notifications 和 alert_deliveries
-    N->>CH: 寄 Email，有綁 LINE 再推播
-    Note over Q,N: 失敗由 SQS 重試，最後進 DLQ
+    N->>DB: 取出 pending 的 alert_deliveries（SKIP LOCKED）
+    N->>CH: 寄 Email，有綁 LINE 再推播（M2）
+    N->>DB: 標記 sent／失敗次數；失敗 5 次標為 failed
+    Note over C,N: 本機由 check_prices 查完後直接呼叫 notifier
 ```
 
 ### 追蹤的生命週期
@@ -285,17 +290,17 @@ erDiagram
 - `users`(id, public_id, email UQ, password_hash, display_name, role, is_demo, is_active, failed_login_count, locked_until, timestamps)
 - `refresh_tokens`(id, user_id, token_hash, expires_at, revoked_at)
 - `line_accounts`(user_id PK/FK, line_user_id UQ, display_name, is_friend, linked_at)
-- `notification_settings`(user_id, email_enabled, line_enabled)
+- `notification_settings`(user_id PK, email_enabled 預設 true)：沒有資料 = 預設值；`line_enabled` 於 M2 加入
 - `airports`(iata PK, name_zh, city_zh, country)、`airlines`(iata PK, name_zh)：精選清單，資料放在 `backend/app/seeds/data/*.csv`
 - `price_queries`(id, query_hash UQ, origin, destination, depart_date, return_date, cabin, adults, airlines（排序後的 IATA 陣列，空 = 全部）, is_demo, last_checked_at)：查價條件只存在這裡；`adults` 和 `is_demo` 都納入 `query_hash`，人數不同的追蹤不會合併，示範資料也不會和真實查詢共用同一筆
 - `watches`(id, public_id, user_id, **price_query_id FK**, **target_price NOT NULL**, **status**(active/queued/paused/expired), timestamps)：不重複存查價條件；單程／來回由 `return_date` 判斷，v1 一律 TWD
 - `price_snapshots`(id, price_query_id, provider, price, airline_iata, stops, booking_url, observed_at)：只新增不修改；價格一律 TWD
 - `price_daily_lows`(price_query_id, date, provider, min_price, currency)，PK(price_query_id, date, provider)：超過保留期限的 snapshots 彙總到這裡（延後，資料量需要時再做）
 - `price_baselines`(price_query_id PK, typical_low, typical_high, record_low, history_seeded, sample_count, updated_at)：`history_seeded` 表示歷史最低已用 Google 的 `price_history` 打底
-- `watch_alert_states`(watch_id PK, below_target, below_typical, last_notified_price, last_notified_at)
-- `alerts`(id, watch_id, snapshot_id, reason, price, created_at, UQ(watch_id, snapshot_id))：價格警示的業務紀錄；`price` 自帶一份，snapshot 因保留期限被刪除時 `snapshot_id` 設為 NULL
-- `notifications`(id, user_id, type(price_alert/system), title, body, link, alert_id NULL, is_read, created_at)：站內通知中心
-- `alert_deliveries`(alert_id, channel, status, attempts, sent_at)，UQ(alert_id, channel)
+- `watch_alert_states`(watch_id PK, below_target, below_typical, last_notified_price, last_notified_at)：沒有資料 = 初始狀態；刪除追蹤時一起刪除
+- `alerts`(id, watch_id, snapshot_id, reason, price, created_at, UQ(watch_id, snapshot_id))：價格警示的業務紀錄；`reason` 是主要原因；`price` 自帶一份，snapshot 因保留期限被刪除時 `snapshot_id` 設為 NULL
+- `notifications`(id, public_id, user_id, type(price_alert/system), title, body, link, alert_id NULL, dedupe_key NULL, is_read, created_at, UQ(user_id, dedupe_key))：站內通知中心；`dedupe_key` 防止系統通知重複（例如 `quota_exhausted:2026-11`）；刪除追蹤後通知保留、`alert_id` 設為 NULL
+- `alert_deliveries`(id, alert_id, channel, status(pending/sent/failed/skipped), attempts, last_error, sent_at, created_at)，UQ(alert_id, channel)：notifier 的寄件匣；`last_error` 已遮掉 SMTP 密碼
 - `api_usage`(provider, month, count)
 
 ## API 草案（/api/v1，FastAPI 自動產生 OpenAPI 文件）

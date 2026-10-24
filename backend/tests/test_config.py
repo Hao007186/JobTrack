@@ -73,3 +73,34 @@ def test_serpapi_requires_key(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.serpapi_key.get_secret_value() == "secret-serpapi-key"
     assert "secret-serpapi-key" not in str(s)
     assert "secret-serpapi-key" not in repr(s)
+
+
+def test_email_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    for name in ("EMAIL_SENDER", "SMTP_PORT", "APP_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+    s = Settings(_env_file=None)
+    assert s.email_sender == "console"
+    assert s.smtp_port == 587
+    assert s.app_base_url == "http://localhost:5173"
+
+
+def test_smtp_requires_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", URL)
+    monkeypatch.setenv("EMAIL_SENDER", "smtp")
+    monkeypatch.setenv("SMTP_HOST", "smtp.resend.com")
+    for name in ("SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(ValidationError) as exc:
+        Settings(_env_file=None)
+    message = str(exc.value)
+    for name in ("SMTP_USERNAME", "SMTP_PASSWORD", "EMAIL_FROM"):
+        assert name in message
+
+    monkeypatch.setenv("SMTP_USERNAME", "resend")
+    monkeypatch.setenv("SMTP_PASSWORD", "secret-smtp-password")
+    monkeypatch.setenv("EMAIL_FROM", "FareWatch <alert@example.com>")
+    s = Settings(_env_file=None)
+    assert s.smtp_password is not None
+    assert "secret-smtp-password" not in str(s)
+    assert "secret-smtp-password" not in repr(s)

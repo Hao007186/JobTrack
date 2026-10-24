@@ -12,7 +12,7 @@ Project_TicketTrack/
 │  └─ alembic/  seeds/（示範帳號資料）  tests/  Dockerfile
 ├─ frontend/  src/{pages,components,api,hooks}  Dockerfile
 ├─ deploy/  docker-compose.yml（api + postgres + frontend + MailHog + LocalStack）  helm/farewatch/
-├─ infra/terraform/  （ECR、Lambda + Function URL、EventBridge、SQS、S3、CloudFront、ACM、SES、SSM、IAM、CloudWatch、Budgets、Cloudflare DNS）
+├─ infra/terraform/  （ECR、Lambda + Function URL、EventBridge、SQS、S3、CloudFront、ACM、SSM、IAM、CloudWatch、Budgets、Cloudflare DNS）
 ├─ .github/  workflows/  pull_request_template.md
 └─ docs/
 ```

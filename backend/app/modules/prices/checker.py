@@ -11,7 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
 from app.core.clock import TAIPEI_TZ
-from app.modules.prices.baseline import apply_result
+from app.modules.alerts.rules import BaselineView
+from app.modules.alerts.service import evaluate_watches
+from app.modules.notifications.service import notify_quota_exhausted
+from app.modules.prices.baseline import apply_result, history_ready
 from app.modules.prices.budget import daily_budget
 from app.modules.prices.models import ApiUsage, PriceBaseline, PriceSnapshot
 from app.modules.prices.providers.base import PriceProvider, ProviderError, SearchResult
@@ -102,22 +105,31 @@ async def record_result(
     now: datetime,
 ) -> None:
     if result.lowest is not None:
-        session.add(
-            PriceSnapshot(
-                price_query_id=query.id,
-                provider=provider_name,
-                price=result.lowest.price,
-                airline_iata=result.lowest.airline_iata,
-                stops=result.lowest.stops,
-                booking_url=result.booking_url,
-                observed_at=now,
-            )
+        snapshot = PriceSnapshot(
+            price_query_id=query.id,
+            provider=provider_name,
+            price=result.lowest.price,
+            airline_iata=result.lowest.airline_iata,
+            stops=result.lowest.stops,
+            booking_url=result.booking_url,
+            observed_at=now,
         )
+        session.add(snapshot)
         baseline = await session.get(PriceBaseline, query.id, populate_existing=True)
         if baseline is None:
             baseline = PriceBaseline(price_query_id=query.id, history_seeded=False, sample_count=0)
             session.add(baseline)
+        # 歷史新低要跟這筆價格併入之前的值比
+        record_low_before = baseline.record_low
+        ready_before = history_ready(baseline)
         apply_result(baseline, result.lowest.price, result.insights)
+        await session.flush()
+        view = BaselineView(
+            typical_low=baseline.typical_low,
+            record_low_before=record_low_before,
+            history_ready_before=ready_before,
+        )
+        await evaluate_watches(session, query, snapshot, view, now)
 
     # 查不到航班也算一次呼叫（額度已花）
     stmt = insert(ApiUsage).values(provider=provider_name, month=usage_month(now), count=1)
@@ -149,6 +161,8 @@ async def run_checks(
         budget = len(queries)
     elif remaining == 0:
         logger.warning("本月額度已用完")
+        await notify_quota_exhausted(session, [q.id for q in queries], usage_month(now()))
+        await session.commit()
         budget = 0
     else:
         budget = daily_budget(remaining, today)

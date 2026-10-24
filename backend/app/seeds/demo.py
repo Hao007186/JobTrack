@@ -5,15 +5,19 @@ import secrets
 import sys
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 import app.db.models  # noqa: F401  獨立執行時也要註冊所有表
 from app.core.clock import TAIPEI_TZ, taipei_today
 from app.db.session import get_sessionmaker
+from app.modules.alerts.rules import AlertState, BaselineView, evaluate
+from app.modules.alerts.service import create_alert, save_state
 from app.modules.auth.security import hash_password
 from app.modules.auth.service import DEMO_EMAIL, get_user_by_email
-from app.modules.prices.baseline import apply_result
+from app.modules.notifications.messages import ACTIVATED_BODY, activated_title, watch_link
+from app.modules.notifications.models import Notification
+from app.modules.prices.baseline import apply_result, history_ready
 from app.modules.prices.models import PriceBaseline, PriceSnapshot
 from app.modules.prices.providers.mock import mock_insights, mock_price
 from app.modules.users.models import User
@@ -125,11 +129,98 @@ async def ensure_demo_prices(session: AsyncSession, user: User, today: date) -> 
     await session.commit()
 
 
+async def _demo_snapshots(session: AsyncSession, watch: Watch) -> list[PriceSnapshot]:
+    result = await session.scalars(
+        select(PriceSnapshot)
+        .where(PriceSnapshot.price_query_id == watch.price_query_id)
+        .order_by(PriceSnapshot.observed_at, PriceSnapshot.id)
+    )
+    return list(result)
+
+
+async def _replay_alerts(session: AsyncSession, watch: Watch) -> None:
+    """把示範快照依時間順序逐筆餵給真正的觸發規則，產生和正式流程一致的通知。"""
+    # 不加入 session，只用來模擬基準逐筆累積
+    baseline = PriceBaseline(history_seeded=False, sample_count=0)
+    insights = mock_insights(watch.price_query.query_hash)
+    state = AlertState()
+    notified_at: datetime | None = None
+    for snapshot in await _demo_snapshots(session, watch):
+        record_low_before = baseline.record_low
+        ready_before = history_ready(baseline)
+        apply_result(baseline, snapshot.price, insights)
+        view = BaselineView(baseline.typical_low, record_low_before, ready_before)
+        decision = evaluate(state, snapshot.price, watch.target_price, view)
+        state = decision.new_state
+        if decision.notify:
+            await create_alert(
+                session,
+                watch,
+                snapshot.id,
+                snapshot.price,
+                decision,
+                created_at=snapshot.observed_at,
+                deliver=False,
+            )
+            notified_at = snapshot.observed_at
+    await save_state(session, watch.id, state, notified_at)
+
+
+async def ensure_demo_notifications(session: AsyncSession, user: User, today: date) -> None:
+    has_notifications = await session.scalar(
+        select(func.count()).select_from(Notification).where(Notification.user_id == user.id)
+    )
+    if has_notifications:
+        return
+    watches = list(
+        (
+            await session.scalars(
+                select(Watch)
+                .where(Watch.user_id == user.id, Watch.status.in_(("active", "expired")))
+                .order_by(Watch.id)
+            )
+        ).unique()
+    )
+    for watch in watches:
+        await _replay_alerts(session, watch)
+
+    active = next(w for w in watches if w.status == "active")
+    first_snapshot = (await _demo_snapshots(session, active))[0]
+    session.add(
+        Notification(
+            user_id=user.id,
+            type="system",
+            title=activated_title(active.price_query),
+            body=ACTIVATED_BODY,
+            link=watch_link(active),
+            created_at=first_snapshot.observed_at - timedelta(days=1),
+        )
+    )
+    await session.flush()
+
+    # 只留最新一則價格通知未讀，讓鈴鐺有未讀數可以展示
+    await session.execute(
+        update(Notification).where(Notification.user_id == user.id).values(is_read=True)
+    )
+    latest = await session.scalar(
+        select(Notification.id)
+        .where(Notification.user_id == user.id, Notification.type == "price_alert")
+        .order_by(Notification.created_at.desc(), Notification.id.desc())
+        .limit(1)
+    )
+    if latest is not None:
+        await session.execute(
+            update(Notification).where(Notification.id == latest).values(is_read=False)
+        )
+    await session.commit()
+
+
 async def _main() -> None:
     async with get_sessionmaker()() as session:
         user = await ensure_demo_user(session)
         await ensure_demo_watches(session, user, taipei_today())
         await ensure_demo_prices(session, user, taipei_today())
+        await ensure_demo_notifications(session, user, taipei_today())
         print(f"示範帳號已就緒：{user.email}（public_id={user.public_id}）")
 
 

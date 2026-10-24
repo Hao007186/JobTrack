@@ -6,6 +6,7 @@ from httpx import AsyncClient, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.alerts.models import WatchAlertState
 from app.modules.users.models import User
 from app.modules.watches.models import PriceQuery, Watch
 from tests.conftest import create_user
@@ -212,3 +213,49 @@ async def test_resume_does_not_jump_queue(client: AsyncClient, db_session: Async
 
     assert (await _patch(client, headers, watch, status="active")).json()["status"] == "queued"
     assert (await _reload(db_session, waiting)).status == "active"
+
+
+async def _watch_with_alert_state(session: AsyncSession) -> Watch:
+    watch = await insert_watch(session, await _alice(session), target_price=9500)
+    session.add(WatchAlertState(watch_id=watch.id, below_target=True, last_notified_price=9000))
+    await session.flush()
+    return watch
+
+
+async def _has_alert_state(session: AsyncSession, watch: Watch) -> bool:
+    return await session.get(WatchAlertState, watch.id, populate_existing=True) is not None
+
+
+async def test_edit_target_resets_alert_state(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    headers = await auth_headers(client, db_session)
+    watch = await _watch_with_alert_state(db_session)
+    assert (await _patch(client, headers, watch, target_price=8000)).status_code == 200
+    assert not await _has_alert_state(db_session, watch)
+
+
+async def test_edit_conditions_resets_alert_state(
+    client: AsyncClient, db_session: AsyncSession
+) -> None:
+    headers = await auth_headers(client, db_session)
+    watch = await _watch_with_alert_state(db_session)
+    assert (await _patch(client, headers, watch, depart_date=day(40))).status_code == 200
+    assert not await _has_alert_state(db_session, watch)
+
+
+async def test_pause_keeps_alert_state(client: AsyncClient, db_session: AsyncSession) -> None:
+    headers = await auth_headers(client, db_session)
+    watch = await _watch_with_alert_state(db_session)
+    assert (await _patch(client, headers, watch, status="paused")).status_code == 200
+    assert await _has_alert_state(db_session, watch)
+
+
+async def test_same_values_keep_alert_state(client: AsyncClient, db_session: AsyncSession) -> None:
+    headers = await auth_headers(client, db_session)
+    watch = await _watch_with_alert_state(db_session)
+    resp = await _patch(
+        client, headers, watch, target_price=9500, destination="NRT", depart_date=day(30)
+    )
+    assert resp.status_code == 200
+    assert await _has_alert_state(db_session, watch)

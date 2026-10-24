@@ -100,7 +100,7 @@ async def test_rebalance_promotes_by_created_at(db_session: AsyncSession) -> Non
     filled[0].status = "paused"
     await db_session.flush()
 
-    assert await rebalance(db_session, TODAY) == 1
+    assert len(await rebalance(db_session, TODAY)) == 1
     assert await _status(db_session, b) == "active"
     assert await _status(db_session, a) == "queued"
 
@@ -114,7 +114,7 @@ async def test_rebalance_promotes_same_query_together(db_session: AsyncSession) 
     filled[0].status = "paused"
     await db_session.flush()
 
-    assert await rebalance(db_session, TODAY) == 2
+    assert len(await rebalance(db_session, TODAY)) == 2
     assert await _status(db_session, w1) == "active"
     assert await _status(db_session, w2) == "active"
 
@@ -125,7 +125,7 @@ async def test_rebalance_promotes_when_query_already_occupied(db_session: AsyncS
     q = await insert_watch(
         db_session, user, status="queued", destination=filled[0].price_query.destination
     )
-    assert await rebalance(db_session, TODAY) == 1
+    assert len(await rebalance(db_session, TODAY)) == 1
     assert await _status(db_session, q) == "active"
 
 
@@ -134,7 +134,7 @@ async def test_rebalance_skips_near_departure(db_session: AsyncSession) -> None:
     near = await insert_watch(
         db_session, user, status="queued", depart_date=TODAY + timedelta(days=2)
     )
-    assert await rebalance(db_session, TODAY) == 0
+    assert len(await rebalance(db_session, TODAY)) == 0
     assert await _status(db_session, near) == "queued"
 
 
