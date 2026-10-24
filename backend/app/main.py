@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.api import health
 from app.modules.auth import router as auth_router
+from app.modules.notifications import router as notifications_router
 from app.modules.prices import router as prices_router
 from app.modules.reference import router as reference_router
 from app.modules.users import router as users_router
@@ -18,6 +19,7 @@ def create_app() -> FastAPI:
     app.include_router(reference_router.router, prefix=API_PREFIX)
     app.include_router(watches_router.router, prefix=API_PREFIX)
     app.include_router(prices_router.router, prefix=API_PREFIX)
+    app.include_router(notifications_router.router, prefix=API_PREFIX)
     return app
 
 
