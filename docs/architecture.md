@@ -15,6 +15,7 @@
 - 2026-10-23 取消 Email 驗證，見文末〈2026-10-23 決策紀錄〉
 - 2026-10-23 確定追蹤的資料模型與補位規則，見文末〈2026-10-23 #3 決策紀錄〉
 - 2026-10-23 確定查價、額度預算與 API key 保護，並用真實回應確認指定航空公司的情況，見文末〈2026-10-23 #4 決策紀錄〉
+- 2026-10-24 確定寄信服務（Resend，走 SMTP）與通知的寄件匣流程，見文末〈2026-10-24 #5 決策紀錄〉
 
 ## 文件索引
 | 階段 | 文件 | 內容 |
@@ -40,10 +41,10 @@ flowchart TB
 
     sched["EventBridge Scheduler（每天：查價、維護）"] --> checker["Lambda: price-checker"]
     checker --> serp["SerpApi Google Flights"]
-    checker -->|alert| sqs["SQS"]
+    checker -->|叫醒| sqs["SQS"]
     sqs --> notifier["Lambda: notifier"]
     sqs -.->|重試失敗| dlq["DLQ"]
-    notifier --> ses["SES（Email）"]
+    notifier --> email["Email（SMTP，Resend）"]
     notifier --> lineapi["LINE Messaging API"]
 
     api --> db[("Neon PostgreSQL（新加坡區，pooler）")]
@@ -59,7 +60,7 @@ flowchart TB
 ## 里程碑
 | 里程碑 | 內容 |
 |---|---|
-| M0 | 前置驗證：Travelpayouts 小實驗（已完成，結論是不採用）、SerpApi 小實驗（已完成）、網域、DNS（寄信服務改到 M1 #5 決定） |
+| M0 | 前置驗證：Travelpayouts 小實驗（已完成，結論是不採用）、SerpApi 小實驗（已完成）、網域、DNS（寄信服務在 M1 #5 決定用 Resend） |
 | M1 | MVP 上線：帳號、追蹤、查價、站內通知與 Email、前端、Terraform 部署 |
 | M2 | LINE 綁定與推播 |
 | M3 | k8s（kind + Helm）與 Playwright E2E |
@@ -172,6 +173,15 @@ flowchart TB
 | 5 | API key 保護 | httpx log 調到 WARNING、錯誤訊息遮掉 key、有測試把關；正式環境 key 放 SSM |
 | 6 | 指定航空公司時是否有 `price_insights`（M0 SerpApi 實驗第 4 項） | 有典型價格區間，但沒有 `price_history`；這時歷史最低不打底，要累積 3 筆自己的價格才判斷歷史新低 |
 | 7 | `price_daily_lows` 與舊快照彙總 | 延後；每天最多約 8 筆快照，一年不到 3,000 筆 |
+
+## 2026-10-24 #5 決策紀錄
+| # | 問題 | 決定 |
+|---|---|---|
+| 1 | 寄信服務（2026-10-23 決策紀錄第 3 項） | 通用 SMTP 寄信器，寄信服務用 **Resend**（從自有網域寄，免費版每天 100 封）；本機預設 console 寄信器。AWS 帳號尚未驗證也能進行；之後換 Gmail 或 SES 只改設定 |
+| 2 | checker 與 notifier 怎麼交接 | **DB 當寄件匣（outbox）**：checker 在寫入快照的同一個 transaction 寫入 alert、站內通知與 `pending` 的寄送紀錄；notifier 取出 `pending` 的紀錄寄出。不會出現 alert 寫了、通知卻漏掉；SQS 或排程只負責叫醒 notifier |
+| 3 | 站內通知由誰寫入（修正 02-design「notifier 寫入 notifications」） | checker 在同一個 transaction 寫入；notifier 只負責外部管道 |
+| 4 | 系統通知的對象與管道 | 只發站內通知、不寄 Email；額度用完時發給受影響（今天原本要查價）的使用者，每人每月一次；排隊中的追蹤被啟用時發給主人 |
+| 5 | 通知狀態的初始值與重置 | `watch_alert_states` 沒有資料 = 初始狀態；編輯查價條件或目標價後刪掉那筆 |
 
 ---
 
