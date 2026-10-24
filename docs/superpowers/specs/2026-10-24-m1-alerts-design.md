@@ -132,7 +132,7 @@ class EmailError(Exception): ...
 
 ### 信件內容（純文字）
 - 主旨 = 站內通知標題
-- 內文 = 站內通知內文 + 空行 + `訂票：{booking_url}`（快照沒有連結就省略這行）+ `查看追蹤：{APP_BASE_URL}{link}` + 空行 + `可在設定頁關閉 Email 通知。`
+- 內文 = 站內通知內文 + `查價時間：{alert 建立時間，台灣時間 YYYY-MM-DD HH:MM}（台灣時間）`（重試或補寄時信會晚到，避免把舊價格當成現在的價格；最終審查時補上）+ 空行 + `訂票：{booking_url}`（快照沒有連結就省略這行）+ `查看追蹤：{APP_BASE_URL}{link}` + 空行 + `可在設定頁關閉 Email 通知。`
 
 ## notifier（`app/modules/notifications/notifier.py`）
 ```python

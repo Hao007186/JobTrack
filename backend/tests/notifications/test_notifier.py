@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -77,6 +77,14 @@ async def test_send_success(db_session: AsyncSession) -> None:
 
     # 已寄出的不會再被取出
     assert await _send(db_session, sender) == SendSummary()
+
+
+async def test_email_shows_check_time(db_session: AsyncSession) -> None:
+    # 重試或補寄時信會晚到，要讓讀者知道「目前最低價」是什麼時候查的
+    await _pending(db_session)
+    sender = FakeSender()
+    await send_pending(db_session, sender, BASE_URL, now=lambda: NOW + timedelta(days=2))
+    assert "查價時間：2026-11-01 10:00（台灣時間）" in sender.attempts[0].text
 
 
 async def test_no_booking_line_without_url(db_session: AsyncSession) -> None:
