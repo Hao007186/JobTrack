@@ -13,6 +13,7 @@ from sqlalchemy.sql import ColumnElement
 from app.core.clock import TAIPEI_TZ
 from app.modules.alerts.rules import BaselineView
 from app.modules.alerts.service import evaluate_watches
+from app.modules.notifications.service import notify_quota_exhausted
 from app.modules.prices.baseline import apply_result, history_ready
 from app.modules.prices.budget import daily_budget
 from app.modules.prices.models import ApiUsage, PriceBaseline, PriceSnapshot
@@ -160,6 +161,8 @@ async def run_checks(
         budget = len(queries)
     elif remaining == 0:
         logger.warning("本月額度已用完")
+        await notify_quota_exhausted(session, [q.id for q in queries], usage_month(now()))
+        await session.commit()
         budget = 0
     else:
         budget = daily_budget(remaining, today)

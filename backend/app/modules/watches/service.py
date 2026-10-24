@@ -8,6 +8,7 @@ from datetime import date, timedelta
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.alerts.service import reset_state
 from app.modules.reference.models import ORIGIN_COUNTRY, Airline, Airport
 from app.modules.users.models import User
 from app.modules.watches import slots
@@ -162,6 +163,10 @@ async def update_watch(
 
     old = conditions_of(watch.price_query)
     new = _merged_conditions(old, data)
+    target_changed = data.target_price is not None and data.target_price != watch.target_price
+    # 改了條件或目標價，舊的通知狀態不再適用
+    if new != old or target_changed:
+        await reset_state(session, watch.id)
     # 比較值而不是看有沒有送：前端可能把整份表單原封不動送回
     if new != old:
         await validate_conditions(session, new, today)
@@ -214,4 +219,4 @@ async def expire_watches(session: AsyncSession, today: date) -> tuple[int, int]:
     expired_count = len(expired.all())
     activated = await slots.rebalance(session, today)
     await session.commit()
-    return expired_count, activated
+    return expired_count, len(activated)

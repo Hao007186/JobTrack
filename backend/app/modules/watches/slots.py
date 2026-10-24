@@ -10,6 +10,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import ColumnElement
 
+from app.modules.notifications.service import notify_activated
 from app.modules.watches.models import PriceQuery, Watch
 
 MAX_ACTIVE_QUERIES = 8
@@ -114,20 +115,20 @@ async def decide_status(
     return "queued"
 
 
-async def _activate_queued(session: AsyncSession, *conditions: ColumnElement[bool]) -> int:
+async def _activate_queued(session: AsyncSession, *conditions: ColumnElement[bool]) -> list[int]:
     ids = await session.scalars(
         update(Watch)
         .where(Watch.status == "queued", *conditions)
         .values(status="active")
         .returning(Watch.id)
     )
-    return len(ids.all())
+    return list(ids.all())
 
 
-async def rebalance(session: AsyncSession, today: date) -> int:
-    """補位：回傳啟用的追蹤數。只 flush，由呼叫端 commit。"""
+async def rebalance(session: AsyncSession, today: date) -> list[int]:
+    """補位：回傳啟用的追蹤 id，並通知主人。只 flush，由呼叫端 commit。"""
     occupied = await occupied_query_ids(session, today)
-    activated = 0
+    activated: list[int] = []
     if occupied:
         # 對應的 query 已經佔名額（例如別人剛建了相同條件），不用多佔就能啟用
         activated += await _activate_queued(session, Watch.price_query_id.in_(occupied))
@@ -145,4 +146,5 @@ async def rebalance(session: AsyncSession, today: date) -> int:
         # 同一個 query 的排隊者一起啟用
         activated += await _activate_queued(session, Watch.price_query_id == next_query_id)
         occupied = await occupied_query_ids(session, today)
+    await notify_activated(session, activated)
     return activated
