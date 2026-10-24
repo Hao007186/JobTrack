@@ -26,6 +26,16 @@ class Settings(BaseSettings):
     price_provider: Literal["mock", "serpapi"] = "mock"
     serpapi_key: SecretStr | None = None
 
+    # 本機預設只把信印在 log；smtp 可接 Resend、Gmail 或 SES
+    email_sender: Literal["console", "smtp"] = "console"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    email_from: str | None = None
+    # 信中「查看追蹤」連結的開頭（前端網址）
+    app_base_url: str = "http://localhost:5173"
+
     @field_validator("database_url")
     @classmethod
     def _use_psycopg_driver(cls, v: str) -> str:
@@ -38,6 +48,21 @@ class Settings(BaseSettings):
     def _serpapi_needs_key(self) -> Self:
         if self.price_provider == "serpapi" and self.serpapi_key is None:
             raise ValueError("PRICE_PROVIDER=serpapi 時必須設定 SERPAPI_KEY")
+        return self
+
+    @model_validator(mode="after")
+    def _smtp_needs_fields(self) -> Self:
+        if self.email_sender != "smtp":
+            return self
+        required = {
+            "SMTP_HOST": self.smtp_host,
+            "SMTP_USERNAME": self.smtp_username,
+            "SMTP_PASSWORD": self.smtp_password,
+            "EMAIL_FROM": self.email_from,
+        }
+        missing = [name for name, value in required.items() if not value]
+        if missing:
+            raise ValueError(f"EMAIL_SENDER=smtp 時必須設定 {', '.join(missing)}")
         return self
 
 

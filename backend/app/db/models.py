@@ -4,7 +4,9 @@
 所以 Alembic 和每個獨立執行的指令（seed、維護）都要 import 這個模組。
 """
 
+from app.modules.alerts import models as alerts_models  # noqa: F401
 from app.modules.auth import models as auth_models  # noqa: F401
+from app.modules.notifications import models as notifications_models  # noqa: F401
 from app.modules.prices import models as prices_models  # noqa: F401
 from app.modules.reference import models as reference_models  # noqa: F401
 from app.modules.users import models as users_models  # noqa: F401
